@@ -17,55 +17,56 @@ class AssignmentController extends Controller
     {
         // Get the latest session that is either DRAFT or ACTIVE
         $session = OpnameSession::whereIn('status', ['DRAFT', 'ACTIVE'])->orderBy('id', 'desc')->first();
-        $bins = [];
+        $zones = [];
         $teams = OpnameTeam::where('is_active', true)->get();
-        $assignmentsMap = [];
 
         if ($session) {
-            // Get unique bins for this session
-            $bins = DB::table('opname_reference_details')
-                ->where('reference_id', $session->reference_id)
-                ->select('bin_code', DB::raw('count(id) as total_sku'))
-                ->groupBy('bin_code')
+            // Group by Zone instead of Bin
+            $zones = DB::table('opname_reference_details')
+                ->leftJoin('bins', 'opname_reference_details.bin_code', '=', 'bins.bin_code')
+                ->where('opname_reference_details.reference_id', $session->reference_id)
+                ->select(
+                    DB::raw('COALESCE(bins.zone, "UNKNOWN") as zone'), 
+                    DB::raw('COUNT(DISTINCT opname_reference_details.bin_code) as total_bins'), 
+                    DB::raw('COUNT(opname_reference_details.id) as total_sku')
+                )
+                ->groupBy('zone')
                 ->get();
-
-            // Get current assignments
-            $assignments = OpnameAssignment::where('session_id', $session->id)->get();
-            foreach ($assignments as $asg) {
-                // To group by bin, we need to know the bin code of the reference detail
-                // Since an assignment is tied to a reference detail, we group by detail's bin
-                // But for simplicity in UI, if a team is assigned to ONE detail in a bin, we assume they are assigned to the whole BIN.
-                // It's better to store bin_code directly in assignment if we assign per bin. 
-                // But schema has reference_detail_id. So we just map the team to the bin.
-            }
         }
-
-        // Wait, if assignment is per reference_detail_id, assigning a whole bin means creating assignments for EVERY sku in that bin.
-        // Let's pass the bins to the view
         
-        return view('sodc.opname_management.assignments.index', compact('session', 'bins', 'teams'));
+        return view('sodc.opname_management.assignments.index', compact('session', 'zones', 'teams'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'session_id' => 'required|exists:opname_sessions,id',
-            'bin_code' => 'required|string',
+            'zone' => 'required|string',
             'team_id' => 'required|exists:opname_teams,id'
         ]);
 
         $session = OpnameSession::findOrFail($request->session_id);
         
-        // Find all reference details for this bin
-        $details = OpnameReferenceDetail::where('reference_id', $session->reference_id)
-            ->where('bin_code', $request->bin_code)
+        // Find all reference details for this zone
+        $details = DB::table('opname_reference_details')
+            ->leftJoin('bins', 'opname_reference_details.bin_code', '=', 'bins.bin_code')
+            ->where('opname_reference_details.reference_id', $session->reference_id)
+            ->where(function ($query) use ($request) {
+                if ($request->zone === 'UNKNOWN') {
+                    $query->whereNull('bins.zone');
+                } else {
+                    $query->where('bins.zone', $request->zone);
+                }
+            })
+            ->select('opname_reference_details.id')
             ->get();
 
         if ($details->isEmpty()) {
-            return redirect()->back()->with('error', 'Bin tidak ditemukan di WMS Referensi.');
+            return redirect()->back()->with('error', 'Tidak ada data referensi di Zona ini.');
         }
 
-        // Assign this team to all SKUs in this bin
+        // Assign this team to all SKUs in this zone
+        $inserts = [];
         foreach ($details as $detail) {
             // Check if already assigned to avoid duplicates
             $exists = OpnameAssignment::where('session_id', $session->id)
@@ -74,18 +75,25 @@ class AssignmentController extends Controller
                 ->exists();
 
             if (!$exists) {
-                OpnameAssignment::create([
-                    'assignment_uuid' => Str::uuid(),
+                $inserts[] = [
+                    'assignment_uuid' => Str::uuid()->toString(),
                     'session_id' => $session->id,
                     'team_id' => $request->team_id,
                     'reference_detail_id' => $detail->id,
                     'status' => 'ASSIGNED',
                     'assigned_by' => auth()->id(),
-                    'assigned_at' => now()
-                ]);
+                    'assigned_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
             }
         }
 
-        return redirect()->route('sodc.assignments.index')->with('success', 'Bin ' . $request->bin_code . ' berhasil ditugaskan ke tim.');
+        // Bulk insert for performance
+        if (!empty($inserts)) {
+            OpnameAssignment::insert($inserts);
+        }
+
+        return redirect()->route('sodc.assignments.index')->with('success', 'Zona ' . $request->zone . ' berhasil ditugaskan ke tim.');
     }
 }

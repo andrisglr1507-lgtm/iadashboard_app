@@ -61,26 +61,29 @@
                 <div class="col-md-6">
                     <h5 class="font-weight-bold text-primary mb-1"><i class="fas fa-play-circle me-2"></i> Sesi Aktif: {{ $session->session_code }}</h5>
                     <span class="badge bg-dark">{{ $session->mode }} MODE</span>
-                    <span class="badge bg-secondary ms-1">{{ count($bins) }} Bins Target</span>
+                    <span class="badge bg-secondary ms-1">{{ count($zones) }} Zona Target</span>
                 </div>
             </div>
         </div>
 
         <div class="row">
-            @foreach($bins as $bin)
+            @foreach($zones as $zone)
             <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
                 <div class="card bin-card h-100 border-0 shadow-sm rounded-4">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="card-title mb-0 font-weight-bold text-gray-800" style="font-family: monospace;">{{ $bin->bin_code }}</h5>
-                            <span class="badge bg-light text-dark border">{{ $bin->total_sku }} SKU</span>
+                            <h5 class="card-title mb-0 font-weight-bold text-gray-800" style="font-family: monospace;">Zona {{ $zone->zone }}</h5>
+                        </div>
+                        <div class="mb-3 text-muted" style="font-size: 0.85rem;">
+                            <div><i class="fas fa-boxes me-2"></i>{{ $zone->total_bins }} Bins</div>
+                            <div><i class="fas fa-tags me-2"></i>{{ $zone->total_sku }} SKU Target</div>
                         </div>
                         
-                        <!-- Simple form to assign a team to this bin -->
+                        <!-- Simple form to assign a team to this zone -->
                         <form action="{{ route('sodc.assignments.store') }}" method="POST">
                             @csrf
                             <input type="hidden" name="session_id" value="{{ $session->id }}">
-                            <input type="hidden" name="bin_code" value="{{ $bin->bin_code }}">
+                            <input type="hidden" name="zone" value="{{ $zone->zone }}">
                             
                             <div class="mb-2">
                                 <select name="team_id" class="form-select form-select-sm" required style="border-radius: 8px;">
