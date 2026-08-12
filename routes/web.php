@@ -5,6 +5,13 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MasterProductController;
 use App\Http\Controllers\OpnameSessionController;
 
+
+// Authentication routes
+Route::get('/login', [\App\Http\Controllers\AuthController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login'])->name('login.post');
+Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
+
+Route::middleware(['auth'])->group(function () {
 // Master Product routes
 Route::get('/master/products', [MasterProductController::class, 'index'])->name('master.products.index');
 Route::post('/master/products/import', [MasterProductController::class, 'import'])->name('master.products.import');
@@ -50,18 +57,12 @@ Route::get('/media/videos', [DashboardController::class, 'videos'])->name('media
 Route::get('/settings/profile', [DashboardController::class, 'profile'])->name('settings.profile');
 Route::get('/settings/security', [DashboardController::class, 'security'])->name('settings.security');
 
-// Authentication routes
-Route::get('/login', [\App\Http\Controllers\AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login'])->name('login.post');
-Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
+
 
 // Users List routes
 Route::get('/users', [\App\Http\Controllers\UserController::class, 'index'])->name('users.index');
 
-// Optional: Protected routes with authentication
-Route::middleware(['auth'])->group(function () {
-    // Masukkan route yang memerlukan login di sini
-});
+
 
 // BA Pemeriksaan routes
 Route::get('/ba-pemeriksaan', [\App\Http\Controllers\BaPemeriksaanController::class, 'index'])->name('ba_pemeriksaan.index');
@@ -103,4 +104,5 @@ Route::prefix('sodc')->name('sodc.')->group(function () {
     Route::get('/sync_logs', function() { return 'Sync Logs'; })->name('sync_logs.index');
     Route::get('/results', function() { return 'Results'; })->name('results.index');
     Route::get('/approvals', function() { return 'Approvals'; })->name('approvals.index');
+});
 });
