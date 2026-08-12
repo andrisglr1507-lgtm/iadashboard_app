@@ -12,8 +12,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
-
-    protected $table = 'user';
+    protected $table = 'users';
 
     protected $fillable = [
         'user_id',
