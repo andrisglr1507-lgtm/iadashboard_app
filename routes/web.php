@@ -90,6 +90,11 @@ Route::prefix('sodc')->name('sodc.')->group(function () {
     Route::post('products/import', [\App\Http\Controllers\Sodc\Master\ProductController::class, 'import'])->name('products.import');
     Route::get('products/template', [\App\Http\Controllers\Sodc\Master\ProductController::class, 'downloadTemplate'])->name('products.template');
     Route::resource('products', \App\Http\Controllers\Sodc\Master\ProductController::class);
+    Route::resource('devices', \App\Http\Controllers\Sodc\Master\DeviceController::class);
+    
+    Route::get('teams/{id}/members', [\App\Http\Controllers\Sodc\Master\TeamController::class, 'members'])->name('teams.members');
+    Route::post('teams/{id}/members', [\App\Http\Controllers\Sodc\Master\TeamController::class, 'addMember'])->name('teams.members.add');
+    Route::delete('teams/{id}/members/{member_id}', [\App\Http\Controllers\Sodc\Master\TeamController::class, 'removeMember'])->name('teams.members.remove');
     Route::resource('teams', \App\Http\Controllers\Sodc\Master\TeamController::class);
     
     // Opname Management

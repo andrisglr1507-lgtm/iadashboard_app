@@ -61,4 +61,35 @@ class TeamController extends Controller
         OpnameTeam::findOrFail($id)->delete();
         return redirect()->route('sodc.teams.index')->with('success', 'Data berhasil dihapus');
     }
+
+    public function members($id)
+    {
+        $team = OpnameTeam::findOrFail($id);
+        $members = \App\Models\OpnameTeamMember::with('user')->where('team_id', $id)->get();
+        $users = \App\Models\User::where('is_active', true)->get(); 
+        return view('sodc.master.teams.members', compact('team', 'members', 'users'));
+    }
+
+    public function addMember(Request $request, $id)
+    {
+        $request->validate(['user_id' => 'required|exists:users,id']);
+        
+        // Remove user from any other teams first to prevent overlapping assignments
+        \App\Models\OpnameTeamMember::where('user_id', $request->user_id)->delete();
+
+        \App\Models\OpnameTeamMember::create([
+            'team_id' => $id,
+            'user_id' => $request->user_id,
+            'role_in_team' => 'MEMBER',
+            'is_active' => true
+        ]);
+        
+        return back()->with('success', 'User berhasil dimasukkan ke dalam tim.');
+    }
+
+    public function removeMember($id, $member_id)
+    {
+        \App\Models\OpnameTeamMember::where('id', $member_id)->where('team_id', $id)->delete();
+        return back()->with('success', 'Anggota berhasil dikeluarkan dari tim.');
+    }
 }

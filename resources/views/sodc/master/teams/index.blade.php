@@ -32,6 +32,7 @@
                 <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>{{ $row->team_name }}</td>
                 <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>{{ $row->team_type }}</td>
                 <td>
+                    <a href="{{ route('sodc.teams.members', $row->id) }}" style="color: #10b981; margin-right: 10px;"><i class="fas fa-users"></i> Anggota</a>
                     <a href="{{ route('sodc.teams.edit', $row->id) }}" style="color: #0284c7; margin-right: 10px;"><i class="fas fa-edit"></i> Edit</a>
                     <form action="{{ route('sodc.teams.destroy', $row->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Hapus data?');">
                         @csrf @method('DELETE')
