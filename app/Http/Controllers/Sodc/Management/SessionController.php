@@ -23,7 +23,7 @@ class SessionController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'reference_id' => 'nullable|exists:equuddbx_so_dc.opname_references,id',
+            'reference_id' => 'nullable|exists:opname_references,id',
             'opname_date' => 'required|date'
         ]);
 

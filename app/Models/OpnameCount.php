@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class OpnameCount extends Model
 {
     protected $guarded = [];
-    protected $table = 'equuddbx_so_dc.opname_counts';
+    protected $table = 'opname_counts';
     //
 }

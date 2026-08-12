@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class Branch extends Model
 {
     protected $guarded = [];
-    protected $table = 'equuddbx_so_dc.branches';
+    protected $table = 'branches';
     //
 }

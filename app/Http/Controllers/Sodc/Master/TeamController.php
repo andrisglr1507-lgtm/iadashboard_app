@@ -22,7 +22,7 @@ class TeamController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'team_code' => 'required|unique:equuddbx_so_dc.opname_teams',
+            'team_code' => 'required|unique:opname_teams',
             'team_name' => 'required',
             'team_type' => 'required'
         ]);
@@ -47,7 +47,7 @@ class TeamController extends Controller
     {
         $item = OpnameTeam::findOrFail($id);
         $request->validate([
-            'team_code' => 'required|unique:equuddbx_so_dc.opname_teams,team_code,'.$id,
+            'team_code' => 'required|unique:opname_teams,team_code,'.$id,
             'team_name' => 'required',
             'team_type' => 'required'
         ]);

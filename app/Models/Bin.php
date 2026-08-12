@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Bin extends Model
 {
     protected $guarded = [];
-    protected $table = 'equuddbx_so_dc.bins';
+    protected $table = 'bins';
     // Parse Bin Code Data
     public static function parseBinCodeData($binCode)
     {

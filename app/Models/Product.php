@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     protected $guarded = [];
-    protected $table = 'equuddbx_so_dc.products';
+    protected $table = 'products';
     //
 }

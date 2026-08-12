@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class SyncQueue extends Model
 {
     protected $guarded = [];
-    protected $table = 'equuddbx_so_dc.sync_queue';
+    protected $table = 'sync_queue';
     //
 }

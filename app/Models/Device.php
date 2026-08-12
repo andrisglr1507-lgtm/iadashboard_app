@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class Device extends Model
 {
     protected $guarded = [];
-    protected $table = 'equuddbx_so_dc.devices';
+    protected $table = 'devices';
     //
 }

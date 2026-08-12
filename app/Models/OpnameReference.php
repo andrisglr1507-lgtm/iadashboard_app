@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class OpnameReference extends Model
 {
     protected $guarded = [];
-    protected $table = 'equuddbx_so_dc.opname_references';
+    protected $table = 'opname_references';
     //
 }

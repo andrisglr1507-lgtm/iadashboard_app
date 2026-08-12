@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class OpnameReferenceDetail extends Model
 {
     protected $guarded = [];
-    protected $table = 'equuddbx_so_dc.opname_reference_details';
+    protected $table = 'opname_reference_details';
 
     public function product()
     {
