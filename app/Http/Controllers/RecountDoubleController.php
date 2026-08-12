@@ -512,7 +512,7 @@ class RecountDoubleController extends Controller
         }
 
         if ($r1Total !== null) {
-            if ($r1Total == $aTotal || $r1Total == $bTotal) {
+            if ($r1Total == $aTotal || $r1Total == $bTotal || $r1Total == $stockSystem) {
                 return ['stage' => 'final', 'label' => 'FINAL R1', 'final_total' => $r1Total, 'can_assign' => false, 'round_to_assign' => null];
             }
             if (isset($activeAssignments[$productId][$loc][3])) {
