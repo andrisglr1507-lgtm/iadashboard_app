@@ -61,11 +61,18 @@
                             if ($isFinal) { $badgeColor = '#3b82f6'; } // blue
                             if ($isR1) { $badgeColor = '#f59e0b'; $badgeText = 'RECOUNT 1'; } // yellow
                             if ($isR2) { $badgeColor = '#ef4444'; $badgeText = 'RECOUNT 2'; } // red
+                            
+                            $isNyasar = (float)$res->system_qty == 0;
                         @endphp
-                        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;">
+                        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; {{ $isNyasar ? 'background-color: #fef9c3;' : '' }}">
                             <td style="padding: 12px 16px;">
                                 <div style="font-weight: 700; color: #0ea5e9;">{{ $res->referenceDetail->bin_code ?? '-' }}</div>
-                                <div style="font-family: monospace; font-weight: 600;">{{ $res->referenceDetail->sku_code ?? '-' }}</div>
+                                <div style="font-family: monospace; font-weight: 600;">
+                                    {{ $res->referenceDetail->sku_code ?? '-' }}
+                                    @if($isNyasar)
+                                        <span style="font-size: 0.65rem; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-family: sans-serif; font-weight: 800;">BARANG NYASAR</span>
+                                    @endif
+                                </div>
                                 <div style="font-size: 0.75rem; color: #64748b;">{{ Str::limit($res->referenceDetail->product->product_name ?? '', 30) }}</div>
                             </td>
                             <td style="padding: 12px 16px; text-align: right; font-weight: 600;">{{ (float)$res->system_qty }}</td>

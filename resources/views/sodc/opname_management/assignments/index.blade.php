@@ -1,46 +1,105 @@
 @extends('layouts.app')
-@section('title', 'Assignment')
-@section('page_title', 'Opname Assignment')
 
-@section('page_actions')
-<a href="{{ route('sodc.assignments.create') }}" style="display: inline-flex; align-items: center; gap: 8px; background: #0ea5e9; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none;">
-    <i class="fas fa-plus"></i> Tambah Assignment
-</a>
-@endsection
+@section('title', 'Team Assignments - SODC')
+
+@push('styles')
+<style>
+    .glass-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        border-radius: 1rem;
+    }
+    .bin-card {
+        transition: all 0.2s ease;
+        border: 1px solid #e2e8f0;
+    }
+    .bin-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        border-color: #3b82f6;
+    }
+</style>
+@endpush
 
 @section('content')
-@if(session('success'))
-    <div style="margin-bottom: 20px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 12px; border-radius: 8px;">
-        <i class="fas fa-check-circle"></i> {{ session('success') }}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h3 mb-0 text-gray-800" style="font-weight: 700; letter-spacing: -0.5px;">Team Assignments</h2>
+            <p class="text-muted mb-0">Assign Bins to Opname Teams for the active session.</p>
+        </div>
     </div>
-@endif
 
-<div style="margin-top: 20px; padding: 24px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(226,232,240,0.8);">
-    <table class="premium-table" style="width: 100%; text-align: left; border-collapse: collapse;">
-        <thead>
-            <tr>
-                <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Sesi ID</th>
-                <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Team ID</th>
-                <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Status Assignment</th>
-                <th>Aksi</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($data as $row)
-            <tr>
-                <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>{{ $row->session_id }}</td>
-                <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>{{ $row->team_id }}</td>
-                <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>{{ $row->status }}</td>
-                <td>
-                    <a href="{{ route('sodc.assignments.edit', $row->id) }}" style="color: #0284c7; margin-right: 10px;"><i class="fas fa-edit"></i> Edit</a>
-                    <form action="{{ route('sodc.assignments.destroy', $row->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Hapus data?');">
-                        @csrf @method('DELETE')
-                        <button type="submit" style="background:none; border:none; color: #ef4444; cursor:pointer;"><i class="fas fa-trash"></i> Hapus</button>
-                    </form>
-                </td>
-            </tr>
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert" style="background: #ecfdf5; color: #065f46;">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert" style="background: #fef2f2; color: #991b1b;">
+            <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if(!$session)
+        <div class="glass-card p-5 text-center">
+            <div class="mb-3">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
+            </div>
+            <h4 class="text-gray-800 font-weight-bold">Tidak ada Sesi Aktif</h4>
+            <p class="text-muted">Silakan buka Sesi Opname terlebih dahulu sebelum membagi tugas.</p>
+            <a href="{{ route('sodc.sessions.index') }}" class="btn btn-primary mt-2">Buka Sesi</a>
+        </div>
+    @else
+        <div class="glass-card p-4 mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="font-weight-bold text-primary mb-1"><i class="fas fa-play-circle me-2"></i> Sesi Aktif: {{ $session->session_code }}</h5>
+                    <span class="badge bg-dark">{{ $session->mode }} MODE</span>
+                    <span class="badge bg-secondary ms-1">{{ count($bins) }} Bins Target</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            @foreach($bins as $bin)
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                <div class="card bin-card h-100 border-0 shadow-sm rounded-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0 font-weight-bold text-gray-800" style="font-family: monospace;">{{ $bin->bin_code }}</h5>
+                            <span class="badge bg-light text-dark border">{{ $bin->total_sku }} SKU</span>
+                        </div>
+                        
+                        <!-- Simple form to assign a team to this bin -->
+                        <form action="{{ route('sodc.assignments.store') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="session_id" value="{{ $session->id }}">
+                            <input type="hidden" name="bin_code" value="{{ $bin->bin_code }}">
+                            
+                            <div class="mb-2">
+                                <select name="team_id" class="form-select form-select-sm" required style="border-radius: 8px;">
+                                    <option value="">-- Pilih Tim --</option>
+                                    @foreach($teams as $team)
+                                        <option value="{{ $team->id }}">{{ $team->team_name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm w-100" style="border-radius: 8px; font-weight: 600;">
+                                <i class="fas fa-plus me-1"></i> Assign
+                            </button>
+                        </form>
+                        
+                    </div>
+                </div>
+            </div>
             @endforeach
-        </tbody>
-    </table>
+        </div>
+    @endif
 </div>
 @endsection
