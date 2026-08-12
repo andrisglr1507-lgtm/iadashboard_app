@@ -108,8 +108,25 @@
     </table>
     </div>
     
-    <div style="margin-top: 20px;">
+    <div style="margin-top: 20px;" class="pagination-wrapper">
         {{ $details->links() }}
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    /* Fix Laravel default Tailwind pagination SVG size */
+    .pagination-wrapper svg {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+    .pagination-wrapper nav > div {
+        margin-top: 10px;
+    }
+    .pagination-wrapper p {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+</style>
+@endpush
