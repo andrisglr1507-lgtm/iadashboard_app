@@ -24,8 +24,14 @@ foreach ($tables as $table) {
             $extra = $columns[0]->Extra;
             
             if (strpos(strtolower($extra), 'auto_increment') === false) {
-                // Determine if it should be auto_increment (usually it should be for id)
-                // We add AUTO_INCREMENT
+                // Fix: First try to make it a Primary Key (if it lost its key status during export)
+                try {
+                    DB::statement("ALTER TABLE `{$tableName}` ADD PRIMARY KEY (`id`)");
+                } catch (\Exception $e) {
+                    // Ignore if primary key already exists
+                }
+                
+                // Then add AUTO_INCREMENT
                 DB::statement("ALTER TABLE `{$tableName}` MODIFY `id` {$type} NOT NULL AUTO_INCREMENT");
                 echo "✅ Fixed AUTO_INCREMENT for table: {$tableName}\n";
                 $fixed++;
