@@ -30,7 +30,8 @@ class UserController extends Controller
         ]);
 
         $validated['is_active'] = $request->has('is_active');
-        $validated['password'] = \Illuminate\Support\Facades\Hash::make($validated['password']);
+        $validated['password_hash'] = \Illuminate\Support\Facades\Hash::make($validated['password']);
+        unset($validated['password']);
 
         User::create($validated);
 
@@ -56,10 +57,9 @@ class UserController extends Controller
         $validated['is_active'] = $request->has('is_active');
 
         if (!empty($validated['password'])) {
-            $validated['password'] = \Illuminate\Support\Facades\Hash::make($validated['password']);
-        } else {
-            unset($validated['password']);
+            $validated['password_hash'] = \Illuminate\Support\Facades\Hash::make($validated['password']);
         }
+        unset($validated['password']);
 
         $user->update($validated);
 
