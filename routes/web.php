@@ -60,7 +60,7 @@ Route::get('/settings/security', [DashboardController::class, 'security'])->name
 
 
 // Users List routes
-Route::get('/users', [\App\Http\Controllers\UserController::class, 'index'])->name('users.index');
+Route::resource('/users', \App\Http\Controllers\UserController::class);
 
 
 

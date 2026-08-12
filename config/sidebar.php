@@ -38,6 +38,11 @@ return [
                 'icon' => 'fas fa-users-cog',
                 'route' => 'sodc.teams.index', // placeholder route
             ],
+            [
+                'title' => 'User Management',
+                'icon' => 'fas fa-user-shield',
+                'route' => 'users.index',
+            ],
         ],
     ],
 
