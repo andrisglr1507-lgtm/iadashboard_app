@@ -9,9 +9,9 @@
 @endsection
 
 @section('content')
-<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px;">
+<div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px;">
     <!-- Info Dokumen -->
-    <div style="padding: 24px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(226,232,240,0.8);">
+    <div style="flex: 1; min-width: 300px; padding: 24px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(226,232,240,0.8);">
         <h3 style="margin-top: 0; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">Informasi Dokumen</h3>
         <table style="width: 100%; font-size: 0.9rem;">
             <tr>
@@ -36,16 +36,16 @@
     </div>
 
     <!-- Ringkasan Angka -->
-    <div style="padding: 24px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(226,232,240,0.8); display: flex; gap: 20px; align-items: center;">
-        <div style="flex: 1; text-align: center; border-right: 1px solid #e2e8f0;">
+    <div style="flex: 2; min-width: 300px; padding: 24px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(226,232,240,0.8); display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+        <div style="flex: 1; min-width: 120px; text-align: center; border-right: 1px solid #e2e8f0;">
             <div style="font-size: 2rem; font-weight: 800; color: #0ea5e9;">{{ $reference->total_bin }}</div>
             <div style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; margin-top: 5px;">Total Bin</div>
         </div>
-        <div style="flex: 1; text-align: center; border-right: 1px solid #e2e8f0;">
+        <div style="flex: 1; min-width: 120px; text-align: center; border-right: 1px solid #e2e8f0;">
             <div style="font-size: 2rem; font-weight: 800; color: #8b5cf6;">{{ $reference->total_sku }}</div>
             <div style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; margin-top: 5px;">Total SKU</div>
         </div>
-        <div style="flex: 1; text-align: center;">
+        <div style="flex: 1; min-width: 120px; text-align: center;">
             <div style="font-size: 2rem; font-weight: 800; color: #10b981;">{{ (float)$reference->total_qty }}</div>
             <div style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; margin-top: 5px;">Total Qty (Pcs)</div>
         </div>
@@ -54,8 +54,9 @@
 
 <div style="padding: 24px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(226,232,240,0.8);">
     <h3 style="margin-top: 0; margin-bottom: 20px; color: #0f172a;">Rincian Item (Snapshot WMS)</h3>
-    <table class="premium-table" style="width: 100%; text-align: left; border-collapse: collapse;">
-        <thead>
+    <div style="overflow-x: auto;">
+        <table class="premium-table" style="width: 100%; text-align: left; border-collapse: collapse; min-width: 800px;">
+            <thead>
             <tr>
                 <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Bin Code</th>
                 <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Product Info</th>
@@ -105,6 +106,7 @@
             @endforeach
         </tbody>
     </table>
+    </div>
     
     <div style="margin-top: 20px;">
         {{ $details->links() }}
