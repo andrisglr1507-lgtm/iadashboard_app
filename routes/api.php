@@ -11,10 +11,11 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    // TODO: Buat controller dan route untuk fitur lainnya
-    Route::get('/sessions/active', function () { return response()->json(['data' => []]); });
-    Route::get('/bins/{code}', function ($code) { return response()->json(['data' => null]); });
-    Route::post('/products/scan', function () { return response()->json(['data' => null]); });
-    Route::post('/opname/submit', function () { return response()->json(['message' => 'Success']); });
-    Route::get('/opname/history', function () { return response()->json(['data' => []]); });
+    // Master Sync routes (placeholder for now, can point to actual master controllers later)
+    Route::get('/master/products', function () { return response()->json(['data' => \App\Models\Product::all()]); });
+    Route::get('/master/bins', function () { return response()->json(['data' => \App\Models\Bin::all()]); });
+
+    // Opname Scanner routes
+    Route::get('/sodc/my-tasks', [\App\Http\Controllers\Api\Sodc\TaskController::class, 'myTasks']);
+    Route::post('/sodc/submit-count', [\App\Http\Controllers\Api\Sodc\CountController::class, 'submitCount']);
 });
