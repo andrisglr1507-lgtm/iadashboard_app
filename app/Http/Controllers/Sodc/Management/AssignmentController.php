@@ -17,83 +17,96 @@ class AssignmentController extends Controller
     {
         // Get the latest session that is either DRAFT or ACTIVE
         $session = OpnameSession::whereIn('status', ['DRAFT', 'ACTIVE'])->orderBy('id', 'desc')->first();
-        $zones = [];
-        $teams = OpnameTeam::where('is_active', true)->get();
+        $warehouses = [];
+        $users = \App\Models\User::where('is_active', true)->get();
+        $assignmentsMap = [];
 
         if ($session) {
-            // Group by Zone instead of Bin
-            $zones = DB::table('opname_reference_details')
+            // Get unique warehouses and aisles for this session
+            $warehouses = DB::table('opname_reference_details')
                 ->leftJoin('bins', 'opname_reference_details.bin_code', '=', 'bins.bin_code')
                 ->where('opname_reference_details.reference_id', $session->reference_id)
                 ->select(
-                    DB::raw('COALESCE(bins.zone, "UNKNOWN") as zone'), 
+                    DB::raw('COALESCE(bins.warehouse_id, "UNKNOWN") as warehouse_id'), 
+                    DB::raw('COALESCE(bins.aisle, "ALL") as aisle'),
                     DB::raw('COUNT(DISTINCT opname_reference_details.bin_code) as total_bins'), 
                     DB::raw('COUNT(opname_reference_details.id) as total_sku')
                 )
-                ->groupBy('zone')
+                ->groupBy('warehouse_id', 'aisle')
                 ->get();
+                
+            $currentAssignments = \App\Models\OpnameUserArea::where('session_id', $session->id)->with('user')->get();
+            foreach ($currentAssignments as $asg) {
+                $key = $asg->warehouse_id . '_' . ($asg->aisle ?? 'ALL');
+                if (!isset($assignmentsMap[$key])) {
+                    $assignmentsMap[$key] = ['TEAM_A' => [], 'TEAM_B' => []];
+                }
+                $assignmentsMap[$key][$asg->team_role][] = $asg;
+            }
         }
         
-        return view('sodc.opname_management.assignments.index', compact('session', 'zones', 'teams'));
+        return view('sodc.opname_management.assignments.index', compact('session', 'warehouses', 'users', 'assignmentsMap'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'session_id' => 'required|exists:opname_sessions,id',
-            'zone' => 'required|string',
-            'team_id' => 'required|exists:opname_teams,id'
+            'warehouse_id' => 'required|string',
+            'aisle' => 'required|string',
+            'team_a_users' => 'nullable|array',
+            'team_b_users' => 'nullable|array'
         ]);
 
-        $session = OpnameSession::findOrFail($request->session_id);
-        
-        // Find all reference details for this zone
-        $details = DB::table('opname_reference_details')
-            ->leftJoin('bins', 'opname_reference_details.bin_code', '=', 'bins.bin_code')
-            ->where('opname_reference_details.reference_id', $session->reference_id)
-            ->where(function ($query) use ($request) {
-                if ($request->zone === 'UNKNOWN') {
-                    $query->whereNull('bins.zone');
-                } else {
-                    $query->where('bins.zone', $request->zone);
-                }
-            })
-            ->select('opname_reference_details.id')
-            ->get();
+        $sessionId = $request->session_id;
+        $warehouseId = $request->warehouse_id;
+        $aisle = $request->aisle == 'ALL' ? null : $request->aisle;
 
-        if ($details->isEmpty()) {
-            return redirect()->back()->with('error', 'Tidak ada data referensi di Zona ini.');
-        }
+        // Delete existing assignments for this area in this session to replace them
+        \App\Models\OpnameUserArea::where('session_id', $sessionId)
+            ->where('warehouse_id', $warehouseId)
+            ->where('aisle', $aisle)
+            ->delete();
 
-        // Assign this team to all SKUs in this zone
         $inserts = [];
-        foreach ($details as $detail) {
-            // Check if already assigned to avoid duplicates
-            $exists = OpnameAssignment::where('session_id', $session->id)
-                ->where('team_id', $request->team_id)
-                ->where('reference_detail_id', $detail->id)
-                ->exists();
 
-            if (!$exists) {
+        if ($request->team_a_users) {
+            foreach ($request->team_a_users as $userId) {
+                // Ensure user isn't assigned to another area in this session (optional, but good for data integrity)
+                \App\Models\OpnameUserArea::where('session_id', $sessionId)->where('user_id', $userId)->delete();
+                
                 $inserts[] = [
-                    'assignment_uuid' => Str::uuid()->toString(),
-                    'session_id' => $session->id,
-                    'team_id' => $request->team_id,
-                    'reference_detail_id' => $detail->id,
-                    'status' => 'ASSIGNED',
-                    'assigned_by' => auth()->id(),
-                    'assigned_at' => now(),
+                    'session_id' => $sessionId,
+                    'warehouse_id' => $warehouseId,
+                    'aisle' => $aisle,
+                    'user_id' => $userId,
+                    'team_role' => 'TEAM_A',
                     'created_at' => now(),
                     'updated_at' => now()
                 ];
             }
         }
 
-        // Bulk insert for performance
-        if (!empty($inserts)) {
-            OpnameAssignment::insert($inserts);
+        if ($request->team_b_users) {
+            foreach ($request->team_b_users as $userId) {
+                \App\Models\OpnameUserArea::where('session_id', $sessionId)->where('user_id', $userId)->delete();
+                
+                $inserts[] = [
+                    'session_id' => $sessionId,
+                    'warehouse_id' => $warehouseId,
+                    'aisle' => $aisle,
+                    'user_id' => $userId,
+                    'team_role' => 'TEAM_B',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
         }
 
-        return redirect()->route('sodc.assignments.index')->with('success', 'Zona ' . $request->zone . ' berhasil ditugaskan ke tim.');
+        if (!empty($inserts)) {
+            \App\Models\OpnameUserArea::insert($inserts);
+        }
+
+        return redirect()->route('sodc.assignments.index')->with('success', 'Assignment berhasil disimpan untuk Gudang ' . $warehouseId . ($aisle ? ' Lorong ' . $aisle : ''));
     }
 }

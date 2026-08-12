@@ -3,6 +3,7 @@
 @section('title', 'Team Assignments - SODC')
 
 @push('styles')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
     .glass-card {
         background: rgba(255, 255, 255, 0.95);
@@ -11,14 +12,16 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         border-radius: 1rem;
     }
-    .bin-card {
-        transition: all 0.2s ease;
-        border: 1px solid #e2e8f0;
+    .accordion-button:not(.collapsed) {
+        background-color: #f8fafc;
+        color: #0f172a;
+        box-shadow: none;
     }
-    .bin-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        border-color: #3b82f6;
+    .accordion-button:focus {
+        box-shadow: none;
+    }
+    .select2-container--bootstrap-5 .select2-selection {
+        border-radius: 0.375rem;
     }
 </style>
 @endpush
@@ -27,8 +30,8 @@
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="h3 mb-0 text-gray-800" style="font-weight: 700; letter-spacing: -0.5px;">Team Assignments</h2>
-            <p class="text-muted mb-0">Assign Bins to Opname Teams for the active session.</p>
+            <h2 class="h3 mb-0 text-gray-800" style="font-weight: 700; letter-spacing: -0.5px;">Gudang & Lorong Assignments</h2>
+            <p class="text-muted mb-0">Tentukan pengguna mana yang menjadi Team A dan Team B per Lorong/Gudang.</p>
         </div>
     </div>
 
@@ -38,71 +41,113 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
-    
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert" style="background: #fef2f2; color: #991b1b;">
-            <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
 
     @if(!$session)
         <div class="glass-card p-5 text-center">
             <div class="mb-3">
                 <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
             </div>
-            <h4 class="text-gray-800 font-weight-bold">Tidak ada Sesi Aktif</h4>
-            <p class="text-muted">Silakan buka Sesi Opname terlebih dahulu sebelum membagi tugas.</p>
-            <a href="{{ route('sodc.sessions.index') }}" class="btn btn-primary mt-2">Buka Sesi</a>
+            <h4 class="text-gray-800 font-weight-bold">Tidak ada Sesi Aktif/Draft</h4>
+            <p class="text-muted">Silakan buat Sesi Opname terlebih dahulu sebelum membagi tugas.</p>
+            <a href="{{ route('sodc.sessions.index') }}" class="btn btn-primary mt-2">Buat Sesi</a>
         </div>
     @else
         <div class="glass-card p-4 mb-4">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h5 class="font-weight-bold text-primary mb-1"><i class="fas fa-play-circle me-2"></i> Sesi Aktif: {{ $session->session_code }}</h5>
-                    <span class="badge bg-dark">{{ $session->mode }} MODE</span>
-                    <span class="badge bg-secondary ms-1">{{ count($zones) }} Zona Target</span>
-                </div>
-            </div>
+            <h5 class="font-weight-bold text-primary mb-1"><i class="fas fa-play-circle me-2"></i> Sesi Aktif: {{ $session->session_code }}</h5>
+            <span class="badge bg-dark">{{ $session->mode }} MODE</span>
         </div>
 
-        <div class="row">
-            @foreach($zones as $zone)
-            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                <div class="card bin-card h-100 border-0 shadow-sm rounded-4">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="card-title mb-0 font-weight-bold text-gray-800" style="font-family: monospace;">Zona {{ $zone->zone }}</h5>
-                        </div>
-                        <div class="mb-3 text-muted" style="font-size: 0.85rem;">
-                            <div><i class="fas fa-boxes me-2"></i>{{ $zone->total_bins }} Bins</div>
-                            <div><i class="fas fa-tags me-2"></i>{{ $zone->total_sku }} SKU Target</div>
-                        </div>
-                        
-                        <!-- Simple form to assign a team to this zone -->
-                        <form action="{{ route('sodc.assignments.store') }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="session_id" value="{{ $session->id }}">
-                            <input type="hidden" name="zone" value="{{ $zone->zone }}">
-                            
-                            <div class="mb-2">
-                                <select name="team_id" class="form-select form-select-sm" required style="border-radius: 8px;">
-                                    <option value="">-- Pilih Tim --</option>
-                                    @foreach($teams as $team)
-                                        <option value="{{ $team->id }}">{{ $team->team_name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-sm w-100" style="border-radius: 8px; font-weight: 600;">
-                                <i class="fas fa-plus me-1"></i> Assign
-                            </button>
-                        </form>
-                        
-                    </div>
-                </div>
-            </div>
-            @endforeach
+        <div class="glass-card p-4">
+            <table class="table table-bordered align-middle">
+                <thead style="background-color: #f1f5f9;">
+                    <tr>
+                        <th style="width: 30%">Gudang / Lorong</th>
+                        <th style="width: 10%; text-align:center;">Bins/SKU</th>
+                        <th style="width: 25%">Team A</th>
+                        <th style="width: 25%">Team B</th>
+                        <th style="width: 10%">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php
+                        // Group warehouses by warehouse_id
+                        $groupedWarehouses = collect($warehouses)->groupBy('warehouse_id');
+                    @endphp
+
+                    @foreach($groupedWarehouses as $wId => $aisles)
+                        <!-- GUDANG ROW -->
+                        <tr style="background-color: #f8fafc; font-weight: bold;">
+                            <td colspan="5" class="py-3">
+                                <a class="text-dark text-decoration-none" data-bs-toggle="collapse" href="#collapseWh_{{ Str::slug($wId) }}" role="button" aria-expanded="false" aria-controls="collapseWh_{{ Str::slug($wId) }}">
+                                    <i class="fas fa-warehouse me-2 text-primary"></i> GUDANG: {{ $wId }}
+                                    <span class="ms-2 badge bg-secondary">{{ count($aisles) }} Lorong</span>
+                                </a>
+                            </td>
+                        </tr>
+
+                        <!-- LORONG ROWS -->
+                        @foreach($aisles as $aisle)
+                            @php 
+                                $rowKey = $wId . '_' . $aisle->aisle;
+                                $teamA = isset($assignmentsMap[$rowKey]['TEAM_A']) ? collect($assignmentsMap[$rowKey]['TEAM_A'])->pluck('user_id')->toArray() : [];
+                                $teamB = isset($assignmentsMap[$rowKey]['TEAM_B']) ? collect($assignmentsMap[$rowKey]['TEAM_B'])->pluck('user_id')->toArray() : [];
+                            @endphp
+                            <tr class="collapse show" id="collapseWh_{{ Str::slug($wId) }}">
+                                <td class="ps-5">
+                                    <i class="fas fa-boxes me-2 text-muted"></i> Lorong: {{ $aisle->aisle }}
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark border">{{ $aisle->total_bins }} Bins</span><br>
+                                    <small class="text-muted">{{ $aisle->total_sku }} SKU</small>
+                                </td>
+                                <form action="{{ route('sodc.assignments.store') }}" method="POST">
+                                    @csrf
+                                    <input type="hidden" name="session_id" value="{{ $session->id }}">
+                                    <input type="hidden" name="warehouse_id" value="{{ $wId }}">
+                                    <input type="hidden" name="aisle" value="{{ $aisle->aisle }}">
+                                    
+                                    <td>
+                                        <select name="team_a_users[]" class="form-select select2-multiple" multiple="multiple" style="width: 100%;">
+                                            @foreach($users as $user)
+                                                <option value="{{ $user->id }}" {{ in_array($user->id, $teamA) ? 'selected' : '' }}>
+                                                    {{ $user->full_name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select name="team_b_users[]" class="form-select select2-multiple" multiple="multiple" style="width: 100%;">
+                                            @foreach($users as $user)
+                                                <option value="{{ $user->id }}" {{ in_array($user->id, $teamB) ? 'selected' : '' }}>
+                                                    {{ $user->full_name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button type="submit" class="btn btn-success btn-sm w-100"><i class="fas fa-save"></i> Save</button>
+                                    </td>
+                                </form>
+                            </tr>
+                        @endforeach
+                    @endforeach
+                </tbody>
+            </table>
         </div>
     @endif
 </div>
 @endsection
+
+@push('scripts')
+<!-- jQuery required for Select2 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.select2-multiple').select2({
+            placeholder: "Pilih nama user...",
+            allowClear: true
+        });
+    });
+</script>
+@endpush

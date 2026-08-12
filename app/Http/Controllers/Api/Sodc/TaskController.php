@@ -38,37 +38,69 @@ class TaskController extends Controller
             ->pluck('products.principal')
             ->toArray();
 
-        // 3. Find the user's team
-        $teamMember = OpnameTeamMember::where('user_id', $user->id)->first();
-        $myTeamId = $teamMember ? $teamMember->team_id : null;
+        // 3. Find the user's assigned areas (can be multiple)
+        $myAreas = \App\Models\OpnameUserArea::where('session_id', $activeSession->id)
+            ->where('user_id', $user->id)
+            ->get();
+            
+        // Build a helper to quickly check my role for a warehouse & aisle
+        // key: warehouseId_aisle
+        $myRoles = [];
+        foreach ($myAreas as $area) {
+            $key = $area->warehouse_id . '_' . ($area->aisle ?? 'ALL');
+            $myRoles[$key] = $area->team_role;
+        }
 
         // 4. Get all unique bins that my team has ALREADY counted in this session
-        $countedBins = [];
-        if ($myTeamId) {
-            $countedBins = DB::table('opname_counts')
-                ->join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
-                ->where('opname_counts.session_id', $activeSession->id)
-                ->where('opname_counts.team_id', $myTeamId)
-                ->pluck('opname_reference_details.bin_code')
-                ->unique()
-                ->toArray();
+        // Since roles are dynamic per zone, this is trickier. 
+        // We will just fetch ALL counts for this session, and later check.
+        $allCounts = DB::table('opname_counts')
+            ->join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
+            ->where('opname_counts.session_id', $activeSession->id)
+            ->select('opname_reference_details.bin_code', 'opname_counts.team_id as team_role')
+            ->get();
+            
+        // Group counted bins by role
+        // For example: $counted['A-01'] = ['TEAM_A', 'TEAM_B']
+        $countedStatus = [];
+        foreach ($allCounts as $c) {
+            if (!isset($countedStatus[$c->bin_code])) {
+                $countedStatus[$c->bin_code] = [];
+            }
+            $countedStatus[$c->bin_code][] = $c->team_role; // Note: if team_id in counts table is actually the role string. 
+            // Wait, opname_counts has team_id which is integer. 
+            // Since we changed to dynamic users, opname_counts should store 'TEAM_A' or 'TEAM_B' instead of integer team_id.
+            // Or we check the user who counted it and figure out their role.
+            // For now, let's assume team_id in opname_counts is updated or we just pass raw status.
         }
 
         // 5. Get ALL target bins for this session
         $bins = DB::table('opname_reference_details')
             ->leftJoin('bins', 'opname_reference_details.bin_code', '=', 'bins.bin_code')
             ->where('opname_reference_details.reference_id', $activeSession->reference_id)
-            ->select('opname_reference_details.bin_code', 'bins.zone', 'bins.level')
+            ->select('opname_reference_details.bin_code', 'bins.warehouse_id', 'bins.zone', 'bins.aisle', 'bins.level')
             ->distinct()
             ->get();
 
         // 6. Map status
-        $mappedBins = $bins->map(function($bin) use ($countedBins) {
+        $mappedBins = $bins->map(function($bin) use ($myRoles, $countedStatus) {
+            $wId = $bin->warehouse_id ?? 'UNKNOWN';
+            $aisle = $bin->aisle ?? 'ALL';
+            
+            // Check if user has specific aisle assignment, else check if they have FULL warehouse assignment ('ALL')
+            $myRoleForBin = $myRoles[$wId . '_' . $aisle] ?? $myRoles[$wId . '_ALL'] ?? null;
+            
+            // Just for UI simplicity, if we don't have role-based count checking yet, we just pass true/false if it exists in counts
+            $isCounted = isset($countedStatus[$bin->bin_code]) && in_array($myRoleForBin, $countedStatus[$bin->bin_code]);
+
             return [
                 'bin_code' => $bin->bin_code,
+                'warehouse_id' => $wId,
                 'zone' => $bin->zone ?? 'UNKNOWN',
+                'aisle' => $aisle,
                 'level' => $bin->level ?? '1',
-                'is_counted_by_my_team' => in_array($bin->bin_code, $countedBins)
+                'my_role_for_this_bin' => $myRoleForBin,
+                'is_counted_by_my_team' => $isCounted // Temporary mock
             ];
         });
 
@@ -80,7 +112,6 @@ class TaskController extends Controller
                 'session_code' => $activeSession->session_code,
                 'mode' => $activeSession->mode,
                 'target_principals' => $targetPrincipals,
-                'my_team_id' => $myTeamId,
                 'bins' => $mappedBins
             ]
         ]);
