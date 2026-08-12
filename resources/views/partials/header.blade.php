@@ -34,11 +34,11 @@
         <div style="display: flex; align-items: center; gap: 12px;">
             <div style="display: flex; align-items: center; gap: 8px;">
                 <div style="width: 32px; height: 32px; border-radius: 50%; background: #0ea5e9; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem;">
-                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                    {{ strtoupper(substr(Auth::user()->full_name ?? Auth::user()->username, 0, 1)) }}
                 </div>
                 <div style="display: flex; flex-direction: column;">
-                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--dark); line-height: 1.2;">{{ Auth::user()->name }}</span>
-                    <span style="font-size: 0.7rem; color: var(--text-secondary); line-height: 1.2;">Admin</span>
+                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--dark); line-height: 1.2;">{{ Auth::user()->full_name ?? Auth::user()->username }}</span>
+                    <span style="font-size: 0.7rem; color: var(--text-secondary); line-height: 1.2;">{{ Auth::user()->role }}</span>
                 </div>
             </div>
             <form action="{{ route('logout') }}" method="POST" style="margin: 0;">

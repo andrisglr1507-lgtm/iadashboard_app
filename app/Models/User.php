@@ -15,15 +15,18 @@ class User extends Authenticatable
     protected $table = 'users';
 
     protected $fillable = [
-        'user_id',
-        'spbu_id',
-        'email',
-        'name',
-        'branch_id',
-        'password',
+        'employee_code',
+        'username',
+        'full_name',
+        'password_hash',
         'role',
         'is_active',
     ];
+
+    public function getAuthPassword()
+    {
+        return $this->password_hash;
+    }
 
     protected $hidden = [
         'password',

@@ -13,11 +13,12 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         \App\Models\User::updateOrCreate(
-            ['email' => 'admin@classic.com'],
+            ['username' => 'admin'],
             [
-                'name' => 'Super Admin',
-                'password' => \Illuminate\Support\Facades\Hash::make('password123'),
-                'role' => 'admin'
+                'employee_code' => 'EMP-001',
+                'full_name' => 'Super Admin',
+                'password_hash' => \Illuminate\Support\Facades\Hash::make('password123'),
+                'role' => 'ADMIN'
             ]
         );
     }

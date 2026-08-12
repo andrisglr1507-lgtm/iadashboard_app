@@ -195,10 +195,10 @@
             <form method="POST" action="{{ route('login.post') }}">
                 @csrf
                 <div class="form-group">
-                    <label class="form-label">Email Address</label>
+                    <label class="form-label">Username</label>
                     <div class="form-input-group">
-                        <i class="fas fa-envelope"></i>
-                        <input type="email" name="email" class="form-control" placeholder="admin@example.com" value="{{ old('email') }}" required autofocus>
+                        <i class="fas fa-user"></i>
+                        <input type="text" name="username" class="form-control" placeholder="admin" value="{{ old('username') }}" required autofocus>
                     </div>
                 </div>
 
