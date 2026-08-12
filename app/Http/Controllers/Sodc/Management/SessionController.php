@@ -47,6 +47,21 @@ class SessionController extends Controller
         return view('sodc.opname_management.sessions.edit', compact('item'));
     }
 
+    public function start($id)
+    {
+        $item = OpnameSession::findOrFail($id);
+        
+        // Ensure no other session is ACTIVE
+        OpnameSession::where('status', 'ACTIVE')->update(['status' => 'FINISHED', 'finished_at' => now()]);
+        
+        $item->update([
+            'status' => 'ACTIVE',
+            'started_at' => now()
+        ]);
+        
+        return redirect()->route('sodc.sessions.index')->with('success', 'Sesi ' . $item->session_code . ' berhasil di-START! Sesi ini sekarang AKTIF.');
+    }
+
     public function update(Request $request, $id)
     {
         $item = OpnameSession::findOrFail($id);

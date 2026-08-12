@@ -97,6 +97,7 @@ Route::prefix('sodc')->name('sodc.')->group(function () {
     Route::post('references/import', [\App\Http\Controllers\Sodc\Management\ReferenceController::class, 'import'])->name('references.import');
     Route::get('references/template', [\App\Http\Controllers\Sodc\Management\ReferenceController::class, 'downloadTemplate'])->name('references.template');
     Route::resource('references', \App\Http\Controllers\Sodc\Management\ReferenceController::class);
+    Route::post('sessions/{id}/start', [\App\Http\Controllers\Sodc\Management\SessionController::class, 'start'])->name('sessions.start');
     Route::resource('sessions', \App\Http\Controllers\Sodc\Management\SessionController::class);
     Route::resource('assignments', \App\Http\Controllers\Sodc\Management\AssignmentController::class);
     

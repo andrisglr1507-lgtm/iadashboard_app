@@ -32,8 +32,22 @@
                 <td style='padding: 12px; border-bottom: 1px solid #f1f5f9; font-weight: bold;'>{{ $row->session_code }}</td>
                 <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>{{ $row->reference_id }}</td>
                 <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>{{ $row->opname_date }}</td>
-                <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>{{ $row->status }}</td>
+                <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>
+                    @if($row->status == 'DRAFT')
+                        <span style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">DRAFT</span>
+                    @elseif($row->status == 'ACTIVE')
+                        <span style="background: #dcfce3; color: #166534; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">ACTIVE</span>
+                    @else
+                        <span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">{{ $row->status }}</span>
+                    @endif
+                </td>
                 <td>
+                    @if($row->status == 'DRAFT')
+                    <form action="{{ route('sodc.sessions.start', $row->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Mulai sesi ini sekarang? Semua sesi aktif lainnya akan dimatikan.');">
+                        @csrf
+                        <button type="submit" style="background: #10b981; border:none; color: white; cursor:pointer; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; margin-right: 10px;"><i class="fas fa-play"></i> START</button>
+                    </form>
+                    @endif
                     <a href="{{ route('sodc.sessions.edit', $row->id) }}" style="color: #0284c7; margin-right: 10px;"><i class="fas fa-edit"></i> Edit</a>
                     <form action="{{ route('sodc.sessions.destroy', $row->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Hapus data?');">
                         @csrf @method('DELETE')

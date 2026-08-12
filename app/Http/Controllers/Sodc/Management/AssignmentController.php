@@ -15,7 +15,8 @@ class AssignmentController extends Controller
 {
     public function index()
     {
-        $session = OpnameSession::where('status', 'ACTIVE')->first();
+        // Get the latest session that is either DRAFT or ACTIVE
+        $session = OpnameSession::whereIn('status', ['DRAFT', 'ACTIVE'])->orderBy('id', 'desc')->first();
         $bins = [];
         $teams = OpnameTeam::where('is_active', true)->get();
         $assignmentsMap = [];
