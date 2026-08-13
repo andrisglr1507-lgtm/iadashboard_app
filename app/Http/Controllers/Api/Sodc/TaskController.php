@@ -78,7 +78,7 @@ class TaskController extends Controller
         $bins = DB::table('opname_reference_details')
             ->leftJoin('bins', 'opname_reference_details.bin_code', '=', 'bins.bin_code')
             ->where('opname_reference_details.reference_id', $activeSession->reference_id)
-            ->select('opname_reference_details.bin_code', 'bins.warehouse_id', 'bins.zone', 'bins.aisle', 'bins.level')
+            ->select('opname_reference_details.bin_code', 'bins.warehouse_id', 'bins.zone', 'bins.aisle', 'bins.level', 'bins.ganjil_genap')
             ->distinct()
             ->get();
 
@@ -94,17 +94,8 @@ class TaskController extends Controller
             $aisle = $bin->aisle ?? (isset($parts[1]) ? $parts[1] : 'ALL');
             $level = $bin->level ?? (isset($parts[2]) ? $parts[2] : '1');
             
-            // Determine Ganjil/Genap based on aisle string
-            $ganjilGenap = 'UNKNOWN';
-            if ($aisle !== 'ALL') {
-                $num = (int)preg_replace('/[^0-9]/', '', $aisle);
-                if ($num > 0) {
-                    $ganjilGenap = ($num % 2 == 0) ? 'GENAP' : 'GANJIL';
-                } else {
-                    // Jika huruf semua (misal AA), kita fallback ke hash atau biarkan UNKNOWN
-                    $ganjilGenap = 'UNKNOWN'; // Flutter bisa handle ini
-                }
-            }
+            // Ambil langsung dari field DB sesuai permintaan, tidak diparsing paksa dari Aisle
+            $ganjilGenap = $bin->ganjil_genap ?? 'UNKNOWN';
             
             // Check if user has specific aisle assignment, else check if they have FULL warehouse assignment ('ALL')
             $myRoleForBin = $myRoles[$wId . '_' . $aisle] ?? $myRoles[$wId . '_ALL'] ?? null;
