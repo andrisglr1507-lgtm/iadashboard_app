@@ -73,8 +73,11 @@ class TaskController extends Controller
             }
             $countedStatus[$c->bin_code][] = $c->team_role;
             
-            if (!empty($c->principal)) {
-                $countedPrincipals[$c->bin_code][] = strtoupper($c->principal);
+            $pr = $c->principal ? trim($c->principal) : '';
+            if (!empty($pr)) {
+                $countedPrincipals[$c->bin_code][] = strtoupper($pr);
+            } else {
+                $countedPrincipals[$c->bin_code][] = 'LAINNYA';
             }
         }
 
