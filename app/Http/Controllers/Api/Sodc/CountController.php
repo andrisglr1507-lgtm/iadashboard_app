@@ -36,12 +36,40 @@ class CountController extends Controller
             return response()->json(['success' => false, 'message' => 'Tidak ada sesi opname aktif.'], 400);
         }
 
-        // Find Team
-        $teamMember = OpnameTeamMember::where('user_id', $user->id)->first();
-        $teamId = $teamMember ? $teamMember->team_id : null;
+        // Find Team Role for this Bin (from UserArea)
+        $binCode = $request->bin_code;
+        $bin = Bin::where('bin_code', $binCode)->first();
+        
+        $teamId = null; // We'll keep the variable name to minimize changes, but it holds 'TEAM_A' or 'TEAM_B' now
+        if ($bin) {
+            $area = \App\Models\OpnameUserArea::where('session_id', $session->id)
+                ->where('user_id', $user->id)
+                ->where('warehouse_id', $bin->warehouse_id)
+                ->where(function($q) use ($bin) {
+                    $q->where('aisle', $bin->aisle)->orWhereNull('aisle');
+                })
+                ->first();
+            $teamId = $area ? $area->team_role : null;
+        }
 
         $binCode = $request->bin_code;
         $bin = Bin::where('bin_code', $binCode)->first();
+
+        // 🔹 CEK KONFLIK (OFFLINE-FIRST CONFLICT RESOLUTION)
+        // Cek apakah Bin ini sudah pernah dihitung oleh anggota tim lain
+        $hasConflict = OpnameCount::join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
+            ->where('opname_counts.session_id', $session->id)
+            ->where('opname_counts.team_id', $teamId)
+            ->where('opname_reference_details.bin_code', $binCode)
+            ->where('opname_counts.counted_by', '!=', $user->id)
+            ->exists();
+
+        if ($hasConflict) {
+            return response()->json([
+                'success' => false,
+                'message' => "Bin $binCode sudah diselesaikan oleh rekan tim Anda."
+            ], 409); // HTTP 409 Conflict
+        }
 
         foreach ($request->counts as $c) {
             $refDetailId = $c['reference_detail_id'] ?? null;

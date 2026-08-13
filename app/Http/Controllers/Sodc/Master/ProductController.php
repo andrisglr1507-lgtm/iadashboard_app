@@ -62,12 +62,12 @@ class ProductController extends Controller
             "Expires"             => "0"
         ];
         
-        $columns = array('sku_code', 'sku_name', 'barcode', 'packname', 'uom', 'principal');
+        $columns = array('sku_code', 'sku_name', 'barcode', 'carton_code', 'packname', 'uom', 'principal');
         
         $callback = function() use($columns) {
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
-            fputcsv($file, array('PRD001', 'Kopi Saset ABC', '8991234567890', '1 CTN = 24 PCS', 24, 'ABC Group'));
+            fputcsv($file, array('PRD001', 'Kopi Saset ABC', '8991234567890', 'C-8991234567890', '1 CTN = 24 PCS', 24, 'ABC Group'));
             fclose($file);
         };
         
@@ -107,9 +107,10 @@ class ProductController extends Controller
                 [
                     'sku_name' => $row[1] ?? '',
                     'barcode' => $row[2] ?: null,
-                    'packname' => $row[3] ?: null,
-                    'uom' => isset($row[4]) && is_numeric($row[4]) ? (int)$row[4] : 1,
-                    'principal' => $row[5] ?: null,
+                    'carton_code' => $row[3] ?: null,
+                    'packname' => $row[4] ?: null,
+                    'uom' => isset($row[5]) && is_numeric($row[5]) ? (int)$row[5] : 1,
+                    'principal' => $row[6] ?: null,
                 ]
             );
         }
