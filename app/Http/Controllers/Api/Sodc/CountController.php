@@ -51,13 +51,8 @@ class CountController extends Controller
                 ->first();
                 
             if ($area && $area->team_role) {
-                // Konversi string 'TEAM_A' / 'TEAM_B' menjadi integer team_id 
-                // dengan memastikan data tim tersebut ada di tabel opname_teams
-                $team = \App\Models\OpnameTeam::firstOrCreate(
-                    ['name' => $area->team_role],
-                    ['description' => 'Tim ' . $area->team_role]
-                );
-                $teamId = $team->id;
+                // Gunakan string team_role secara langsung karena kolom di DB sudah diubah jadi string
+                $teamId = $area->team_role;
             } else {
                 // Jika user tidak di-assign ke gudang/lorong ini, tolak submit
                 return response()->json([
