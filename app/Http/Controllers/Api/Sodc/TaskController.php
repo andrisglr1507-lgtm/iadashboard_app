@@ -74,46 +74,53 @@ class TaskController extends Controller
             // For now, let's assume team_id in opname_counts is updated or we just pass raw status.
         }
 
-        // 5. Get ALL target bins for this session
-        $bins = DB::table('opname_reference_details')
+        // 5. Get ALL target details for this session and group by bin
+        $details = DB::table('opname_reference_details')
             ->leftJoin('bins', 'opname_reference_details.bin_code', '=', 'bins.bin_code')
             ->where('opname_reference_details.reference_id', $activeSession->reference_id)
-            ->select('opname_reference_details.bin_code', 'bins.warehouse_id', 'bins.zone', 'bins.aisle', 'bins.level', 'bins.ganjil_genap')
-            ->distinct()
+            ->select(
+                'opname_reference_details.bin_code', 
+                'opname_reference_details.id as reference_detail_id',
+                'opname_reference_details.sku_code',
+                'bins.warehouse_id', 'bins.zone', 'bins.aisle', 'bins.level', 'bins.ganjil_genap'
+            )
             ->get();
 
-        // 6. Map status
-        $mappedBins = $bins->map(function($bin) use ($myRoles, $countedStatus) {
-            $wId = $bin->warehouse_id ?? 'UNKNOWN';
-            
-            // Extract from bin_code directly to bypass NULL issues in bins table
-            // Format is typically ZONE.AISLE.LEVEL (e.g. A.01.1 or B.AA.2)
-            $parts = explode('.', $bin->bin_code);
-            
-            $zone = $bin->zone ?? (isset($parts[0]) ? $parts[0] : 'UNKNOWN');
-            $aisle = $bin->aisle ?? (isset($parts[1]) ? $parts[1] : 'ALL');
-            $level = $bin->level ?? (isset($parts[2]) ? $parts[2] : '1');
-            
-            // Ambil langsung dari field DB sesuai permintaan, tidak diparsing paksa dari Aisle
-            $ganjilGenap = $bin->ganjil_genap ?? 'UNKNOWN';
-            
-            // Check if user has specific aisle assignment, else check if they have FULL warehouse assignment ('ALL')
-            $myRoleForBin = $myRoles[$wId . '_' . $aisle] ?? $myRoles[$wId . '_ALL'] ?? null;
-            
-            // Just for UI simplicity, if we don't have role-based count checking yet, we just pass true/false if it exists in counts
-            $isCounted = isset($countedStatus[$bin->bin_code]) && in_array($myRoleForBin, $countedStatus[$bin->bin_code]);
+        $binsAssoc = [];
+        foreach ($details as $bin) {
+            $code = $bin->bin_code;
+            if (!isset($binsAssoc[$code])) {
+                $wId = $bin->warehouse_id ?? 'UNKNOWN';
+                $parts = explode('.', $code);
+                $zone = $bin->zone ?? (isset($parts[0]) ? $parts[0] : 'UNKNOWN');
+                $aisle = $bin->aisle ?? (isset($parts[1]) ? $parts[1] : 'ALL');
+                $level = $bin->level ?? (isset($parts[2]) ? $parts[2] : '1');
+                $ganjilGenap = $bin->ganjil_genap ?? 'UNKNOWN';
+                
+                $myRoleForBin = $myRoles[$wId . '_' . $aisle] ?? $myRoles[$wId . '_ALL'] ?? null;
+                $isCounted = isset($countedStatus[$code]) && in_array($myRoleForBin, $countedStatus[$code]);
 
-            return [
-                'bin_code' => $bin->bin_code,
-                'warehouse_id' => $wId,
-                'zone' => $zone,
-                'aisle' => $aisle,
-                'level' => $level,
-                'ganjil_genap' => $ganjilGenap,
-                'my_role_for_this_bin' => $myRoleForBin,
-                'is_counted_by_my_team' => $isCounted // Temporary mock
+                $binsAssoc[$code] = [
+                    'bin_code' => $code,
+                    'warehouse_id' => $wId,
+                    'zone' => $zone,
+                    'aisle' => $aisle,
+                    'level' => $level,
+                    'ganjil_genap' => $ganjilGenap,
+                    'my_role_for_this_bin' => $myRoleForBin,
+                    'is_counted_by_my_team' => $isCounted,
+                    'expected_items' => []
+                ];
+            }
+            
+            // Add SKU item to this bin
+            $binsAssoc[$code]['expected_items'][] = [
+                'id_product' => $bin->sku_code,
+                'reference_detail_id' => $bin->reference_detail_id
             ];
-        });
+        }
+
+        $mappedBins = array_values($binsAssoc);
 
         return response()->json([
             'success' => true,
