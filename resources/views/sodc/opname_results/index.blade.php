@@ -61,6 +61,7 @@
                             if ($isFinal) { $badgeColor = '#3b82f6'; } // blue
                             if ($isR1) { $badgeColor = '#f59e0b'; $badgeText = 'RECOUNT 1'; } // yellow
                             if ($isR2) { $badgeColor = '#ef4444'; $badgeText = 'RECOUNT 2'; } // red
+                            if (str_starts_with($res->result_status, 'WAITING')) { $badgeColor = '#8b5cf6'; } // purple
                             
                             $isNyasar = (float)$res->system_qty == 0;
                         @endphp
@@ -73,7 +74,10 @@
                                         <span style="font-size: 0.65rem; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-family: sans-serif; font-weight: 800;">BARANG NYASAR</span>
                                     @endif
                                 </div>
-                                <div style="font-size: 0.75rem; color: #64748b;">{{ Str::limit($res->referenceDetail->product->product_name ?? '', 30) }}</div>
+                                <div style="font-size: 0.75rem; color: #64748b;">
+                                    <strong style="color: #334155;">{{ Str::limit($res->referenceDetail->product->product_name ?? 'Unknown Product', 40) }}</strong><br>
+                                    UOM: {{ $res->referenceDetail->product->uom ?? '-' }} | Pack: {{ $res->referenceDetail->product->packname ?? '-' }}
+                                </div>
                             </td>
                             <td style="padding: 12px 16px; text-align: right; font-weight: 600;">{{ (float)$res->system_qty }}</td>
                             <td style="padding: 12px 16px; text-align: right;">{{ is_null($res->team_a_qty) ? '-' : (float)$res->team_a_qty }}</td>

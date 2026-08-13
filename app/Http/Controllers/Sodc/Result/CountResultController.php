@@ -127,8 +127,10 @@ class CountResultController extends Controller
                             }
                         }
                     }
-                } else if ($aQty !== null) {
-                    $status = 'RECOUNT'; // Waiting for B
+                } else if ($aQty !== null && $bQty === null) {
+                    $status = 'WAITING B'; // Menunggu tim B
+                } else if ($aQty === null && $bQty !== null) {
+                    $status = 'WAITING A'; // Menunggu tim A
                 }
             } else {
                 // Mode SINGLE
