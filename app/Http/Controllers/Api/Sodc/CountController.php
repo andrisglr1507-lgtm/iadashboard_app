@@ -40,7 +40,7 @@ class CountController extends Controller
         $binCode = $request->bin_code;
         $bin = Bin::where('bin_code', $binCode)->first();
         
-        $teamId = null; // We'll keep the variable name to minimize changes, but it holds 'TEAM_A' or 'TEAM_B' now
+        $teamId = null;
         if ($bin) {
             $area = \App\Models\OpnameUserArea::where('session_id', $session->id)
                 ->where('user_id', $user->id)
@@ -49,7 +49,16 @@ class CountController extends Controller
                     $q->where('aisle', $bin->aisle)->orWhereNull('aisle');
                 })
                 ->first();
-            $teamId = $area ? $area->team_role : null;
+                
+            if ($area && $area->team_role) {
+                // Konversi string 'TEAM_A' / 'TEAM_B' menjadi integer team_id 
+                // dengan memastikan data tim tersebut ada di tabel opname_teams
+                $team = \App\Models\OpnameTeam::firstOrCreate(
+                    ['name' => $area->team_role],
+                    ['description' => 'Tim ' . $area->team_role]
+                );
+                $teamId = $team->id;
+            }
         }
 
         $binCode = $request->bin_code;
