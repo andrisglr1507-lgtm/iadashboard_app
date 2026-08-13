@@ -79,7 +79,7 @@ class CountController extends Controller
 
         // AD-HOC HANDLING: Jika tidak ada reference_detail_id (Barang Nyasar / Sapu Lorong)
         if (!$refDetailId) {
-            $product = Product::where('id_product', $idProduct)->first();
+            $product = Product::where('sku_code', $idProduct)->first();
             if ($product) {
                 // Cek apakah sudah terlanjur dibuatkan reference detail sebelumnya (oleh user/tim lain)
                 $existingRef = OpnameReferenceDetail::where('reference_id', $session->reference_id)
@@ -96,7 +96,7 @@ class CountController extends Controller
                         'warehouse_id' => $bin ? $bin->warehouse_id : null,
                         'bin_id' => $bin ? $bin->id : null,
                         'product_id' => $product->id,
-                        'sku_code' => $product->id_product,
+                        'sku_code' => $product->sku_code,
                         'bin_code' => $binCode,
                         'system_qty' => 0, // KUNCI UTAMA: Sistem menganggap 0
                         'uom' => $product->uom,
