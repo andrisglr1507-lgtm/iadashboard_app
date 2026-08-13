@@ -75,7 +75,7 @@
                                     @endif
                                 </div>
                                 <div style="font-size: 0.75rem; color: #64748b;">
-                                    <strong style="color: #334155;">{{ Str::limit($res->referenceDetail->product->product_name ?? 'Unknown Product', 40) }}</strong><br>
+                                    <strong style="color: #334155;">{{ Str::limit($res->referenceDetail->product->sku_name ?? 'Unknown Product', 40) }}</strong><br>
                                     UOM: {{ $res->referenceDetail->product->uom ?? '-' }} | Pack: {{ $res->referenceDetail->product->packname ?? '-' }}
                                 </div>
                             </td>
