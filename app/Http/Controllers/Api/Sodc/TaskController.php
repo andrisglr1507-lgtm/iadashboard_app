@@ -130,7 +130,7 @@ class TaskController extends Controller
                 'session_code' => $activeSession->session_code,
                 'mode' => $activeSession->mode,
                 'target_principals' => $targetPrincipals,
-                'my_team' => $myAreas->first()->team_role ?? 'TEAM_A',
+                'my_team' => $myAreas->isNotEmpty() ? $myAreas->first()->team_role : 'UNASSIGNED',
                 'bins' => $mappedBins
             ]
         ]);

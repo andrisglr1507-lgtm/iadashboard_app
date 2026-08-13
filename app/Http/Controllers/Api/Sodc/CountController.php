@@ -58,6 +58,12 @@ class CountController extends Controller
                     ['description' => 'Tim ' . $area->team_role]
                 );
                 $teamId = $team->id;
+            } else {
+                // Jika user tidak di-assign ke gudang/lorong ini, tolak submit
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki assignment (penugasan) di Gudang/Lorong ini!'
+                ], 403);
             }
         }
 
