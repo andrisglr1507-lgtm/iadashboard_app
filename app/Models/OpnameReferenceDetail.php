@@ -13,4 +13,9 @@ class OpnameReferenceDetail extends Model
     {
         return $this->belongsTo(Product::class, 'product_id', 'id');
     }
+
+    public function bin()
+    {
+        return $this->belongsTo(Bin::class, 'bin_code', 'bin_code');
+    }
 }
