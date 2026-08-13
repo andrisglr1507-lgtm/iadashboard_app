@@ -56,22 +56,26 @@ class TaskController extends Controller
         // We will just fetch ALL counts for this session, and later check.
         $allCounts = DB::table('opname_counts')
             ->join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
+            ->leftJoin('master_products', 'opname_reference_details.sku_code', '=', 'master_products.id_product')
             ->where('opname_counts.session_id', $activeSession->id)
-            ->select('opname_reference_details.bin_code', 'opname_counts.team_id as team_role')
+            ->select('opname_reference_details.bin_code', 'opname_counts.team_id as team_role', 'master_products.principal')
             ->get();
             
-        // Group counted bins by role
-        // For example: $counted['A-01'] = ['TEAM_A', 'TEAM_B']
+        // Group counted bins by role and gather actual principals
         $countedStatus = [];
+        $countedPrincipals = [];
         foreach ($allCounts as $c) {
             if (!isset($countedStatus[$c->bin_code])) {
                 $countedStatus[$c->bin_code] = [];
             }
-            $countedStatus[$c->bin_code][] = $c->team_role; // Note: if team_id in counts table is actually the role string. 
-            // Wait, opname_counts has team_id which is integer. 
-            // Since we changed to dynamic users, opname_counts should store 'TEAM_A' or 'TEAM_B' instead of integer team_id.
-            // Or we check the user who counted it and figure out their role.
-            // For now, let's assume team_id in opname_counts is updated or we just pass raw status.
+            if (!isset($countedPrincipals[$c->bin_code])) {
+                $countedPrincipals[$c->bin_code] = [];
+            }
+            $countedStatus[$c->bin_code][] = $c->team_role;
+            
+            if (!empty($c->principal)) {
+                $countedPrincipals[$c->bin_code][] = strtoupper($c->principal);
+            }
         }
 
         // 5. Get ALL target details for this session and group by bin
@@ -82,6 +86,7 @@ class TaskController extends Controller
                 'opname_reference_details.bin_code', 
                 'opname_reference_details.id as reference_detail_id',
                 'opname_reference_details.sku_code',
+                'opname_reference_details.system_qty',
                 'bins.warehouse_id', 'bins.zone', 'bins.aisle', 'bins.level', 'bins.ganjil_genap'
             )
             ->get();
@@ -109,8 +114,16 @@ class TaskController extends Controller
                     'ganjil_genap' => $ganjilGenap,
                     'my_role_for_this_bin' => $myRoleForBin,
                     'is_counted_by_my_team' => $isCounted,
+                    'counted_by_teams' => isset($countedStatus[$code]) ? array_values(array_unique($countedStatus[$code])) : [],
+                    'actual_principals' => isset($countedPrincipals[$code]) ? array_values(array_unique($countedPrincipals[$code])) : [],
+                    'is_ad_hoc' => true, // Will be set to false if any item has system_qty > 0
                     'expected_items' => []
                 ];
+            }
+            
+            // If at least one item in this bin has system_qty > 0, it means the bin itself was part of the WMS target
+            if ($bin->system_qty > 0) {
+                $binsAssoc[$code]['is_ad_hoc'] = false;
             }
             
             // Add SKU item to this bin
@@ -122,6 +135,17 @@ class TaskController extends Controller
 
         $mappedBins = array_values($binsAssoc);
 
+        // Fetch ALL master bins for the involved warehouses
+        $warehouseIds = $details->pluck('warehouse_id')->unique()->filter()->toArray();
+        $allWarehouseBins = [];
+        if (!empty($warehouseIds)) {
+            $allWarehouseBins = DB::table('bins')
+                ->whereIn('warehouse_id', $warehouseIds)
+                ->select('bin_code', 'zone', 'ganjil_genap')
+                ->get()
+                ->toArray();
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Berhasil mengambil daftar seluruh Bin.',
@@ -131,7 +155,8 @@ class TaskController extends Controller
                 'mode' => $activeSession->mode,
                 'target_principals' => $targetPrincipals,
                 'my_team' => $myAreas->isNotEmpty() ? $myAreas->first()->team_role : 'UNASSIGNED',
-                'bins' => $mappedBins
+                'bins' => $mappedBins,
+                'all_warehouse_bins' => $allWarehouseBins
             ]
         ]);
     }
@@ -151,12 +176,22 @@ class TaskController extends Controller
             ->where('bin_code', $binCode)
             ->get();
 
-        $expectedItems = $details->map(function ($detail) {
+        $countedItems = \App\Models\OpnameCount::where('session_id', $activeSession->id)
+            ->whereIn('reference_detail_id', $details->pluck('id'))
+            ->get()
+            ->keyBy('reference_detail_id');
+
+        $expectedItems = $details->map(function ($detail) use ($countedItems) {
+            $count = $countedItems->get($detail->id);
             return [
                 'id_product' => $detail->product->id_product ?? $detail->sku_code,
                 'product_name' => $detail->product->product_name ?? 'Unknown Product',
                 'uom' => $detail->product->uom ?? 'PCS',
                 'reference_detail_id' => $detail->id,
+                'is_counted' => $count ? true : false,
+                'counted_qty_karton' => $count ? $count->input_karton : 0,
+                'counted_qty_pcs' => $count ? $count->input_pcs : 0,
+                'counted_final_qty' => $count ? $count->count_qty : 0,
             ];
         })->values()->toArray();
 
