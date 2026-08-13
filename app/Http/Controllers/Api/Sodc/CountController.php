@@ -21,11 +21,11 @@ class CountController extends Controller
     {
         $request->validate([
             'bin_code' => 'required|string',
-            'counts' => 'required|array',
-            'counts.*.id_product' => 'required|string',
-            'counts.*.qty' => 'required|numeric|min:0',
-            // reference_detail_id is optional, will be null for Ad-Hoc / Unexpected items
-            'counts.*.reference_detail_id' => 'nullable|integer'
+            'id_product' => 'required|string',
+            'final_qty' => 'required|numeric|min:0',
+            'qty_karton' => 'nullable|numeric|min:0',
+            'qty_pcs' => 'nullable|numeric|min:0',
+            'reference_detail_id' => 'nullable|integer'
         ]);
 
         $user = $request->user();
@@ -71,16 +71,16 @@ class CountController extends Controller
             ], 409); // HTTP 409 Conflict
         }
 
-        foreach ($request->counts as $c) {
-            $refDetailId = $c['reference_detail_id'] ?? null;
-            $idProduct = $c['id_product'];
-            $qty = $c['qty'];
+        $refDetailId = $request->reference_detail_id ?? null;
+        $idProduct = $request->id_product;
+        $qty = $request->final_qty;
+        $qtyKarton = $request->qty_karton;
+        $qtyPcs = $request->qty_pcs;
 
-            // AD-HOC HANDLING: Jika tidak ada reference_detail_id (Barang Nyasar / Sapu Lorong)
-            if (!$refDetailId) {
-                $product = Product::where('id_product', $idProduct)->first();
-                if (!$product) continue; // Skip if invalid product
-
+        // AD-HOC HANDLING: Jika tidak ada reference_detail_id (Barang Nyasar / Sapu Lorong)
+        if (!$refDetailId) {
+            $product = Product::where('id_product', $idProduct)->first();
+            if ($product) {
                 // Cek apakah sudah terlanjur dibuatkan reference detail sebelumnya (oleh user/tim lain)
                 $existingRef = OpnameReferenceDetail::where('reference_id', $session->reference_id)
                     ->where('bin_code', $binCode)
@@ -105,7 +105,9 @@ class CountController extends Controller
                     $refDetailId = $newRef->id;
                 }
             }
+        }
 
+        if ($refDetailId) {
             // Simpan Hitungan ke opname_counts
             // Cek apakah tim ini sudah submit untuk ref ini sebelumnya (Mencegah double insert jika mereka resubmit)
             $existingCount = OpnameCount::where('session_id', $session->id)
@@ -118,6 +120,8 @@ class CountController extends Controller
                 // Update
                 $existingCount->update([
                     'count_qty' => $qty,
+                    'input_karton' => $qtyKarton,
+                    'input_pcs' => $qtyPcs,
                     'counted_by' => $user->id,
                     'counted_at' => now(),
                 ]);
@@ -129,6 +133,8 @@ class CountController extends Controller
                     'reference_detail_id' => $refDetailId,
                     'team_id' => $teamId,
                     'count_qty' => $qty,
+                    'input_karton' => $qtyKarton,
+                    'input_pcs' => $qtyPcs,
                     'count_status' => 'SUBMITTED',
                     'count_sequence' => 1,
                     'counted_by' => $user->id,
@@ -137,6 +143,7 @@ class CountController extends Controller
                 ]);
             }
         }
+
 
         return response()->json([
             'success' => true,
