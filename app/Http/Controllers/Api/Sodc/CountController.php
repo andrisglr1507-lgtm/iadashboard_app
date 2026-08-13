@@ -130,6 +130,7 @@ class CountController extends Controller
                 OpnameCount::create([
                     'count_uuid' => Str::uuid(),
                     'session_id' => $session->id,
+                    'assignment_id' => 0, // Bypass field yang tidak nullable
                     'reference_detail_id' => $refDetailId,
                     'team_id' => $teamId,
                     'count_qty' => $qty,
