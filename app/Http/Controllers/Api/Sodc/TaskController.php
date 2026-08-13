@@ -56,9 +56,9 @@ class TaskController extends Controller
         // We will just fetch ALL counts for this session, and later check.
         $allCounts = DB::table('opname_counts')
             ->join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
-            ->leftJoin('master_products', 'opname_reference_details.sku_code', '=', 'master_products.id_product')
+            ->leftJoin('products', 'opname_reference_details.sku_code', '=', 'products.sku_code')
             ->where('opname_counts.session_id', $activeSession->id)
-            ->select('opname_reference_details.bin_code', 'opname_counts.team_id as team_role', 'master_products.principal')
+            ->select('opname_reference_details.bin_code', 'opname_counts.team_id as team_role', 'products.principal')
             ->get();
             
         // Group counted bins by role and gather actual principals
