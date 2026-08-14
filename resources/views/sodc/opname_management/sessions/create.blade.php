@@ -48,7 +48,7 @@
         <div style='margin-bottom: 15px;'>
             <label style='display:block; margin-bottom:5px; font-weight:600; color:#334155;'>Metode Perhitungan <span style="color:red;">*</span></label>
             <select name="counting_method" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff;">
-                <option value="BLIND">BLIND - Tim tidak tahu kunci jawaban qty saldo</option>
+                <option value="BLIND">BLIND - Tim tidak tahu qty saldo</option>
                 <option value="OPEN">OPEN - Tim bisa melihat qty target</option>
             </select>
         </div>
