@@ -132,6 +132,12 @@ class CountResultController extends Controller
                 } else if ($aQty === null && $bQty !== null) {
                     $status = 'WAITING A'; // Menunggu tim A
                 }
+            } else if ($session->mode == 'RECORD_ONLY') {
+                // Mode RECORD ONLY
+                if ($aQty !== null) {
+                    $status = 'FINAL';
+                    $finalQty = $aQty;
+                }
             } else {
                 // Mode SINGLE
                 if ($aQty !== null) {

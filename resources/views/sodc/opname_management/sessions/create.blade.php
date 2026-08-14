@@ -41,6 +41,7 @@
             <select name="mode" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff;">
                 <option value="DOUBLE">DOUBLE - A vs B (Hitungan Fisik A dibanding Hitungan Fisik B)</option>
                 <option value="SINGLE">SINGLE - WMS vs Single Team (Hitungan Fisik dibanding Saldo WMS)</option>
+                <option value="RECORD_ONLY">RECORD ONLY - Murni mencatat hasil hitung fisik (Tanpa Komparasi)</option>
             </select>
         </div>
 
