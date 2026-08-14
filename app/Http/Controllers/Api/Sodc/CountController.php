@@ -224,6 +224,39 @@ class CountController extends Controller
             if ($count) {
                 // Hapus count
                 $count->delete();
+                
+                // Cek apakah masih ada hitungan dari tim lain untuk barang ini
+                $remainingCounts = OpnameCount::where('session_id', $session->id)
+                    ->where('reference_detail_id', $refDetail->id)
+                    ->count();
+                    
+                if ($remainingCounts == 0) {
+                    // Jika tidak ada tim manapun yang menghitung barang ini lagi, bersihkan tabel Result
+                    $result = \App\Models\OpnameResult::where('session_id', $session->id)
+                        ->where('reference_detail_id', $refDetail->id)
+                        ->first();
+                        
+                    if ($result) {
+                        if ((float)$refDetail->system_qty == 0) {
+                            // Ini adalah barang nyasar (tidak ada di WMS), maka hapus secara total
+                            $result->delete();
+                            $refDetail->delete();
+                        } else {
+                            // Ini barang WMS, kembalikan statusnya jadi UNCOUNTED
+                            $result->update([
+                                'team_a_qty' => null,
+                                'team_b_qty' => null,
+                                'recount1_qty' => null,
+                                'recount2_qty' => null,
+                                'final_qty' => null,
+                                'result_status' => 'UNCOUNTED',
+                                'variance_qty' => null,
+                                'variance_pct' => null,
+                            ]);
+                        }
+                    }
+                }
+
                 return response()->json(['success' => true, 'message' => 'Hitungan berhasil dihapus dari server.']);
             }
         }

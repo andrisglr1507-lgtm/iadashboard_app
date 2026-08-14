@@ -78,6 +78,30 @@ class CountResultController extends Controller
             
             // Jika belum ada yang menghitung sama sekali, skip atau update UNCOUNTED
             if ($counts->isEmpty()) {
+                // Fix: Bersihkan data yang nyangkut (jika sebelumnya pernah dihitung lalu dihapus)
+                $existingResult = OpnameResult::where('session_id', $sessionId)
+                    ->where('reference_detail_id', $ref->id)
+                    ->first();
+                    
+                if ($existingResult && $existingResult->result_status != 'UNCOUNTED') {
+                    if ((float)$ref->system_qty == 0) {
+                        // Barang nyasar -> Delete karena tidak ada yang hitung lagi
+                        $existingResult->delete();
+                        $ref->delete();
+                    } else {
+                        // Barang WMS -> Reset jadi UNCOUNTED
+                        $existingResult->update([
+                            'team_a_qty' => null,
+                            'team_b_qty' => null,
+                            'recount1_qty' => null,
+                            'recount2_qty' => null,
+                            'final_qty' => null,
+                            'result_status' => 'UNCOUNTED',
+                            'variance_qty' => null,
+                            'variance_pct' => null,
+                        ]);
+                    }
+                }
                 continue;
             }
 
