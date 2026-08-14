@@ -98,7 +98,7 @@ class CountResultController extends Controller
                             'final_qty' => null,
                             'result_status' => 'UNCOUNTED',
                             'variance_qty' => null,
-                            'variance_pct' => null,
+                            'variance_percentage' => null,
                         ]);
                     }
                 }
