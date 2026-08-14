@@ -168,4 +168,66 @@ class CountController extends Controller
             'message' => 'Hitungan untuk Bin ' . $binCode . ' berhasil disubmit.'
         ]);
     }
+
+    /**
+     * Delete count for a specific product in a bin
+     */
+    public function deleteCount(Request $request)
+    {
+        $request->validate([
+            'bin_code' => 'required|string',
+            'id_product' => 'required|string',
+        ]);
+
+        $user = $request->user();
+        $sessionId = $request->input('session_id') ?? $request->header('X-Session-Id');
+        
+        $session = OpnameSession::where('status', 'ACTIVE');
+        if ($sessionId) {
+            $session->where('id', $sessionId);
+        }
+        $session = $session->first();
+
+        if (!$session) {
+            return response()->json(['success' => false, 'message' => 'Tidak ada sesi aktif.'], 400);
+        }
+
+        $bin = Bin::where('bin_code', $request->bin_code)->first();
+        $teamId = null;
+        if ($bin) {
+            $area = \App\Models\OpnameUserArea::where('session_id', $session->id)
+                ->where('user_id', $user->id)
+                ->where('warehouse_id', $bin->warehouse_id)
+                ->where(function($q) use ($bin) {
+                    $q->where('aisle', $bin->aisle)->orWhereNull('aisle');
+                })
+                ->first();
+            if ($area) {
+                $teamId = $area->team_role;
+            }
+        }
+
+        // Find the reference detail ID
+        $refDetail = OpnameReferenceDetail::where('reference_id', $session->reference_id)
+            ->where('bin_code', $request->bin_code)
+            ->where('sku_code', $request->id_product)
+            ->first();
+
+        if ($refDetail) {
+            // Delete the count
+            $count = OpnameCount::where('session_id', $session->id)
+                ->where('team_id', $teamId)
+                ->where('reference_detail_id', $refDetail->id)
+                ->where('count_sequence', 1)
+                ->first();
+
+            if ($count) {
+                // Hapus count
+                $count->delete();
+                return response()->json(['success' => true, 'message' => 'Hitungan berhasil dihapus dari server.']);
+            }
+        }
+
+        return response()->json(['success' => true, 'message' => 'Data tidak ditemukan, namun dianggap sudah terhapus.']);
+    }
 }

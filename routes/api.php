@@ -22,4 +22,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sodc/bins', [\App\Http\Controllers\Api\Sodc\TaskController::class, 'allBins']);
     Route::get('/sodc/bins/{bin_code}', [\App\Http\Controllers\Api\Sodc\TaskController::class, 'binDetails']);
     Route::post('/sodc/submit-count', [\App\Http\Controllers\Api\Sodc\CountController::class, 'submitCount']);
+    Route::post('/sodc/delete-count', [\App\Http\Controllers\Api\Sodc\CountController::class, 'deleteCount']);
 });
