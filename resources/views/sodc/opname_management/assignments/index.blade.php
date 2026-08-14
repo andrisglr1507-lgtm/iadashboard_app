@@ -70,66 +70,112 @@
                 </thead>
                 <tbody>
                     @php
-                        // Group warehouses by warehouse_id
-                        $groupedWarehouses = collect($warehouses)->groupBy('warehouse_id');
+                        // Grouping data up to 4 levels
+                        $groupedData = collect($warehouses)->groupBy(['warehouse_id', 'zone', 'level', 'ganjil_genap']);
                     @endphp
 
-                    @foreach($groupedWarehouses as $wId => $aisles)
+                    @foreach($groupedData as $wId => $zones)
                         <!-- GUDANG ROW -->
-                        <tr style="background-color: #f8fafc; font-weight: bold;">
+                        @php $whSlug = Str::slug($wId); @endphp
+                        <tr style="background-color: #e2e8f0; font-weight: bold;">
                             <td colspan="5" class="py-3">
-                                <a class="text-dark text-decoration-none" data-bs-toggle="collapse" href="#collapseWh_{{ Str::slug($wId) }}" role="button" aria-expanded="false" aria-controls="collapseWh_{{ Str::slug($wId) }}">
-                                    <i class="fas fa-warehouse me-2 text-primary"></i> GUDANG: {{ $wId }}
-                                    <span class="ms-2 badge bg-secondary">{{ count($aisles) }} Lorong</span>
+                                <a class="text-dark text-decoration-none d-flex align-items-center" data-bs-toggle="collapse" href="#collapseWh_{{ $whSlug }}" role="button" aria-expanded="false">
+                                    <i class="fas fa-warehouse me-2 text-primary"></i> 
+                                    <span style="font-size: 1.1rem;">GUDANG: {{ $wId }}</span>
                                 </a>
                             </td>
                         </tr>
 
-                        <!-- LORONG ROWS -->
-                        @foreach($aisles as $aisle)
-                            @php 
-                                $rowKey = $wId . '_' . $aisle->aisle;
-                                $teamA = isset($assignmentsMap[$rowKey]['TEAM_A']) ? collect($assignmentsMap[$rowKey]['TEAM_A'])->pluck('user_id')->toArray() : [];
-                                $teamB = isset($assignmentsMap[$rowKey]['TEAM_B']) ? collect($assignmentsMap[$rowKey]['TEAM_B'])->pluck('user_id')->toArray() : [];
-                            @endphp
-                            <tr class="collapse show" id="collapseWh_{{ Str::slug($wId) }}">
-                                <td class="ps-5">
-                                    <i class="fas fa-boxes me-2 text-muted"></i> Lorong: {{ $aisle->aisle }}
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-light text-dark border">{{ $aisle->total_bins }} Bins</span><br>
-                                    <small class="text-muted">{{ $aisle->total_sku }} SKU</small>
-                                </td>
-                                <form action="{{ route('sodc.assignments.store') }}" method="POST">
-                                    @csrf
-                                    <input type="hidden" name="session_id" value="{{ $session->id }}">
-                                    <input type="hidden" name="warehouse_id" value="{{ $wId }}">
-                                    <input type="hidden" name="aisle" value="{{ $aisle->aisle }}">
-                                    
-                                    <td>
-                                        <select name="team_a_users[]" class="form-select select2-multiple" multiple="multiple" style="width: 100%;">
-                                            @foreach($users as $user)
-                                                <option value="{{ $user->id }}" {{ in_array($user->id, $teamA) ? 'selected' : '' }}>
-                                                    {{ $user->full_name }}
-                                                </option>
+                        <tbody class="collapse show" id="collapseWh_{{ $whSlug }}">
+                            @foreach($zones as $zName => $levels)
+                                <!-- ZONA ROW -->
+                                @php $zSlug = $whSlug . '_' . Str::slug($zName); @endphp
+                                <tr style="background-color: #f1f5f9; font-weight: bold;">
+                                    <td colspan="5" class="py-2 ps-4">
+                                        <a class="text-dark text-decoration-none d-flex align-items-center" data-bs-toggle="collapse" href="#collapseZn_{{ $zSlug }}" role="button" aria-expanded="false">
+                                            <i class="fas fa-map-marked-alt me-2 text-info"></i> ZONA: {{ $zName }}
+                                        </a>
+                                    </td>
+                                </tr>
+
+                                <tbody class="collapse show" id="collapseZn_{{ $zSlug }}">
+                                    @foreach($levels as $lName => $pos)
+                                        <!-- LEVEL ROW -->
+                                        @php $lSlug = $zSlug . '_' . Str::slug($lName); @endphp
+                                        <tr style="background-color: #f8fafc; font-weight: 600;">
+                                            <td colspan="5" class="py-2 ps-5 border-bottom-0">
+                                                <a class="text-secondary text-decoration-none d-flex align-items-center" data-bs-toggle="collapse" href="#collapseLv_{{ $lSlug }}" role="button" aria-expanded="false">
+                                                    <i class="fas fa-layer-group me-2"></i> LEVEL: {{ $lName }}
+                                                </a>
+                                            </td>
+                                        </tr>
+
+                                        <tbody class="collapse show" id="collapseLv_{{ $lSlug }}">
+                                            @foreach($pos as $pName => $aisles)
+                                                <!-- POSISI (GANJIL/GENAP) ROW -->
+                                                @php $pSlug = $lSlug . '_' . Str::slug($pName); @endphp
+                                                <tr style="background-color: #ffffff;">
+                                                    <td colspan="5" class="py-2" style="padding-left: 4.5rem !important;">
+                                                        <a class="text-muted text-decoration-none d-flex align-items-center" data-bs-toggle="collapse" href="#collapsePos_{{ $pSlug }}" role="button" aria-expanded="false">
+                                                            <i class="fas fa-arrows-alt-h me-2"></i> POSISI: {{ $pName }}
+                                                            <span class="ms-2 badge bg-light text-dark border">{{ count($aisles) }} Lorong</span>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+
+                                                <tbody class="collapse show" id="collapsePos_{{ $pSlug }}">
+                                                    @foreach($aisles as $aisle)
+                                                        <!-- LORONG ROW (ASSIGNMENT FORM) -->
+                                                        @php 
+                                                            $rowKey = $wId . '_' . $aisle->aisle;
+                                                            $teamA = isset($assignmentsMap[$rowKey]['TEAM_A']) ? collect($assignmentsMap[$rowKey]['TEAM_A'])->pluck('user_id')->toArray() : [];
+                                                            $teamB = isset($assignmentsMap[$rowKey]['TEAM_B']) ? collect($assignmentsMap[$rowKey]['TEAM_B'])->pluck('user_id')->toArray() : [];
+                                                        @endphp
+                                                        <tr>
+                                                            <td style="padding-left: 6rem !important;">
+                                                                <i class="fas fa-boxes me-2 text-primary"></i> <strong>Lorong: {{ $aisle->aisle }}</strong>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="badge bg-light text-dark border">{{ $aisle->total_bins }} Bins</span><br>
+                                                                <small class="text-muted">{{ $aisle->total_sku }} SKU</small>
+                                                            </td>
+                                                            <form action="{{ route('sodc.assignments.store') }}" method="POST">
+                                                                @csrf
+                                                                <input type="hidden" name="session_id" value="{{ $session->id }}">
+                                                                <input type="hidden" name="warehouse_id" value="{{ $wId }}">
+                                                                <input type="hidden" name="aisle" value="{{ $aisle->aisle }}">
+                                                                
+                                                                <td>
+                                                                    <select name="team_a_users[]" class="form-select select2-multiple" multiple="multiple" style="width: 100%;">
+                                                                        @foreach($users as $user)
+                                                                            <option value="{{ $user->id }}" {{ in_array($user->id, $teamA) ? 'selected' : '' }}>
+                                                                                {{ $user->full_name }}
+                                                                            </option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                </td>
+                                                                <td>
+                                                                    <select name="team_b_users[]" class="form-select select2-multiple" multiple="multiple" style="width: 100%;">
+                                                                        @foreach($users as $user)
+                                                                            <option value="{{ $user->id }}" {{ in_array($user->id, $teamB) ? 'selected' : '' }}>
+                                                                                {{ $user->full_name }}
+                                                                            </option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                </td>
+                                                                <td>
+                                                                    <button type="submit" class="btn btn-success btn-sm w-100"><i class="fas fa-save"></i> Save</button>
+                                                                </td>
+                                                            </form>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
                                             @endforeach
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <select name="team_b_users[]" class="form-select select2-multiple" multiple="multiple" style="width: 100%;">
-                                            @foreach($users as $user)
-                                                <option value="{{ $user->id }}" {{ in_array($user->id, $teamB) ? 'selected' : '' }}>
-                                                    {{ $user->full_name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <button type="submit" class="btn btn-success btn-sm w-100"><i class="fas fa-save"></i> Save</button>
-                                    </td>
-                                </form>
-                            </tr>
-                        @endforeach
+                                        </tbody>
+                                    @endforeach
+                                </tbody>
+                            @endforeach
+                        </tbody>
                     @endforeach
                 </tbody>
             </table>

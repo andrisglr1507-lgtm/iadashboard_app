@@ -71,6 +71,8 @@ class TaskController extends Controller
             $myRoles[$key] = $area->team_role;
         }
 
+        $myGlobalTeamRole = $myAreas->isNotEmpty() ? $myAreas->first()->team_role : 'UNASSIGNED';
+
         // 4. Get all unique bins that my team has ALREADY counted in this session
         // Since roles are dynamic per zone, this is trickier. 
         // We will just fetch ALL counts for this session, and later check.
@@ -126,7 +128,7 @@ class TaskController extends Controller
                 $ganjilGenap = $bin->ganjil_genap ?? 'UNKNOWN';
                 
                 $myRoleForBin = $myRoles[$wId . '_' . $aisle] ?? $myRoles[$wId . '_ALL'] ?? null;
-                $isCounted = isset($countedStatus[$code]) && in_array($myRoleForBin, $countedStatus[$code]);
+                $isCounted = isset($countedStatus[$code]) && in_array($myGlobalTeamRole, $countedStatus[$code]);
 
                 $binsAssoc[$code] = [
                     'bin_code' => $code,

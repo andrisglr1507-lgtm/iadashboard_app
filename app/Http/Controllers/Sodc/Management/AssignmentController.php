@@ -28,11 +28,14 @@ class AssignmentController extends Controller
                 ->where('opname_reference_details.reference_id', $session->reference_id)
                 ->select(
                     DB::raw('COALESCE(bins.warehouse_id, "UNKNOWN") as warehouse_id'), 
+                    DB::raw('COALESCE(bins.zone, "UNKNOWN") as zone'), 
+                    DB::raw('COALESCE(bins.level, "UNKNOWN") as level'), 
+                    DB::raw('COALESCE(bins.ganjil_genap, "UNKNOWN") as ganjil_genap'), 
                     DB::raw('COALESCE(bins.aisle, "ALL") as aisle'),
                     DB::raw('COUNT(DISTINCT opname_reference_details.bin_code) as total_bins'), 
                     DB::raw('COUNT(opname_reference_details.id) as total_sku')
                 )
-                ->groupBy('warehouse_id', 'aisle')
+                ->groupBy('warehouse_id', 'zone', 'level', 'ganjil_genap', 'aisle')
                 ->get();
                 
             $currentAssignments = \App\Models\OpnameUserArea::where('session_id', $session->id)->with('user')->get();
