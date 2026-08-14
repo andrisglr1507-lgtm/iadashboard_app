@@ -30,8 +30,15 @@ class CountController extends Controller
 
         $user = $request->user();
         
-        // Find active session
-        $session = OpnameSession::where('status', 'ACTIVE')->first();
+        // 1. Dapatkan Sesi Aktif dari ID atau fallback
+        $sessionId = $request->input('session_id') ?? $request->header('X-Session-Id');
+        
+        $activeSessionQuery = OpnameSession::where('status', 'ACTIVE');
+        if ($sessionId) {
+            $activeSessionQuery->where('id', $sessionId);
+        }
+        
+        $session = $activeSessionQuery->first();
         if (!$session) {
             return response()->json(['success' => false, 'message' => 'Tidak ada sesi opname aktif.'], 400);
         }

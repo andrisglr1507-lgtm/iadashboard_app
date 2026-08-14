@@ -51,8 +51,8 @@ class SessionController extends Controller
     {
         $item = OpnameSession::findOrFail($id);
         
-        // Ensure no other session is ACTIVE
-        OpnameSession::where('status', 'ACTIVE')->update(['status' => 'FINISHED', 'finished_at' => now()]);
+        // Multi-Session Support: Kita biarkan sesi lain tetap ACTIVE
+        // OpnameSession::where('status', 'ACTIVE')->update(['status' => 'FINISHED', 'finished_at' => now()]);
         
         $item->update([
             'status' => 'ACTIVE',

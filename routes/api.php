@@ -17,7 +17,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Opname Scanner routes
     Route::get('/sodc/my-tasks', [\App\Http\Controllers\Api\Sodc\TaskController::class, 'allBins']); // Backward compatibility for Flutter
-    Route::get('/sodc/all-bins', [\App\Http\Controllers\Api\Sodc\TaskController::class, 'allBins']);
+    Route::get('/sodc/sessions/active', [\App\Http\Controllers\Api\Sodc\TaskController::class, 'activeSessions']);
+    Route::get('/sodc/tasks', [\App\Http\Controllers\Api\Sodc\TaskController::class, 'myTasks']);
+    Route::get('/sodc/bins', [\App\Http\Controllers\Api\Sodc\TaskController::class, 'allBins']);
     Route::get('/sodc/bins/{bin_code}', [\App\Http\Controllers\Api\Sodc\TaskController::class, 'binDetails']);
     Route::post('/sodc/submit-count', [\App\Http\Controllers\Api\Sodc\CountController::class, 'submitCount']);
 });

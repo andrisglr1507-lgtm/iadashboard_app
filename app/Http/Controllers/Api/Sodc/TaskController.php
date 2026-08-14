@@ -12,6 +12,19 @@ use Illuminate\Support\Facades\DB;
 class TaskController extends Controller
 {
     /**
+     * Get all active sessions for the user to choose from.
+     */
+    public function activeSessions(Request $request)
+    {
+        $sessions = OpnameSession::where('status', 'ACTIVE')->orderBy('id', 'desc')->get();
+        return response()->json([
+            'success' => true,
+            'message' => 'Berhasil mengambil daftar sesi aktif.',
+            'data' => $sessions
+        ]);
+    }
+
+    /**
      * Mengambil daftar SEMUA Bin target (Live View).
      * Tidak lagi berdasarkan assignment, melainkan Free-for-all dengan filter Zona/Level di Flutter.
      */
@@ -19,8 +32,15 @@ class TaskController extends Controller
     {
         $user = $request->user();
 
-        // 1. Get the active session
-        $activeSession = OpnameSession::where('status', 'ACTIVE')->first();
+        // 1. Get the active session by ID if provided, otherwise fallback to the first one (for backward compatibility)
+        $sessionId = $request->input('session_id') ?? $request->header('X-Session-Id');
+        
+        $activeSessionQuery = OpnameSession::where('status', 'ACTIVE');
+        if ($sessionId) {
+            $activeSessionQuery->where('id', $sessionId);
+        }
+        
+        $activeSession = $activeSessionQuery->first();
         if (!$activeSession) {
             return response()->json([
                 'success' => false,
@@ -169,7 +189,14 @@ class TaskController extends Controller
      */
     public function binDetails(Request $request, $binCode)
     {
-        $activeSession = OpnameSession::where('status', 'ACTIVE')->first();
+        $sessionId = $request->input('session_id') ?? $request->header('X-Session-Id');
+        
+        $activeSessionQuery = OpnameSession::where('status', 'ACTIVE');
+        if ($sessionId) {
+            $activeSessionQuery->where('id', $sessionId);
+        }
+        
+        $activeSession = $activeSessionQuery->first();
         if (!$activeSession) {
             return response()->json(['success' => false, 'message' => 'Tidak ada sesi aktif.'], 404);
         }

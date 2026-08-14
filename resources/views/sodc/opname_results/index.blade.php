@@ -2,6 +2,20 @@
 @section('title', 'Rekonsiliasi Hasil Opname')
 @section('page_title', 'Hasil Rekonsiliasi Opname')
 
+@section('page_actions')
+@if(isset($activeSessions) && $activeSessions->count() > 0)
+<form action="{{ route('sodc.results.index') }}" method="GET" style="display: inline-flex; align-items: center; gap: 10px;">
+    <label style="color: #64748b; font-weight: 600; font-size: 0.85rem;">Pilih Sesi:</label>
+    <select name="session_id" onchange="this.form.submit()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.85rem; font-weight: 600; color: #334155;">
+        @foreach($activeSessions as $s)
+            <option value="{{ $s->id }}" {{ (isset($activeSessionId) && $activeSessionId == $s->id) ? 'selected' : '' }}>
+                {{ $s->session_code }} ({{ $s->mode }})
+            </option>
+        @endforeach
+    </select>
+</form>
+@endif
+@endsection
 @section('content')
 
 @if(isset($error))

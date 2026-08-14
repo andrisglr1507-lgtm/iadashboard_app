@@ -15,23 +15,24 @@ class CountResultController extends Controller
     public function index(Request $request)
     {
         // 1. Dapatkan active session
+        if ($request->has('session_id') && $request->session_id != '') {
+            session(['active_opname_session_id' => $request->session_id]);
+        }
+        
         $activeSessionId = session('active_opname_session_id');
+        $activeSessions = OpnameSession::where('status', 'ACTIVE')->orderBy('id', 'desc')->get();
+        
+        if (!$activeSessionId && $activeSessions->count() > 0) {
+            $activeSessionId = $activeSessions->first()->id;
+            session(['active_opname_session_id' => $activeSessionId]);
+        }
+
         if (!$activeSessionId) {
-            $sessions = OpnameSession::where('status', 'ACTIVE')->get();
-            // Jika ada yg aktif, set ke session
-            if ($sessions->count() == 1) {
-                $activeSessionId = $sessions->first()->id;
-                session(['active_opname_session_id' => $activeSessionId]);
-            } else if ($sessions->count() > 1) {
-                // Biarkan user pilih di header, atau return view error
-                return view('sodc.opname_results.index', [
-                    'error' => 'Silakan pilih Sesi Opname Aktif di header.'
-                ]);
-            } else {
-                return view('sodc.opname_results.index', [
-                    'error' => 'Belum ada sesi opname yang aktif.'
-                ]);
-            }
+            return view('sodc.opname_results.index', [
+                'error' => 'Belum ada sesi opname yang aktif.',
+                'activeSessions' => $activeSessions,
+                'activeSessionId' => null
+            ]);
         }
 
         // 2. Jalankan Auto-Rekonsiliasi (Sinkronisasi dari opname_counts ke opname_results)
@@ -53,7 +54,7 @@ class CountResultController extends Controller
 
         $results = $query->orderBy('id', 'asc')->paginate(50);
 
-        return view('sodc.opname_results.index', compact('results', 'activeSessionId'));
+        return view('sodc.opname_results.index', compact('results', 'activeSessionId', 'activeSessions'));
     }
 
     private function runReconciliation($sessionId)
