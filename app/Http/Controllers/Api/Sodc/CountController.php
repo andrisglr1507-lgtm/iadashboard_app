@@ -118,7 +118,7 @@ class CountController extends Controller
                             'bin_code' => $binCode,
                             'system_qty' => 0, // KUNCI UTAMA: Sistem menganggap 0
                             'uom' => $product->uom,
-                            'stock_status' => 'GOOD',
+                            'stock_status' => 'AVAILABLE',
                         ]);
                         $refDetailId = $newRef->id;
                         
