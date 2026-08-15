@@ -8,6 +8,7 @@ class OpnameReferenceDetail extends Model
 {
     protected $guarded = [];
     protected $table = 'opname_reference_details';
+    public $timestamps = false; // Disable timestamps
 
     public function product()
     {
