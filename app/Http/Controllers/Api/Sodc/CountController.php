@@ -107,20 +107,48 @@ class CountController extends Controller
                 if ($existingRef) {
                     $refDetailId = $existingRef->id;
                 } else {
-                    // Buat Referensi WMS Palsu/Nol untuk memfasilitasi barang nyasar
-                    $newRef = OpnameReferenceDetail::create([
-                        'reference_id' => $session->reference_id,
-                        'warehouse_id' => $bin ? $bin->warehouse_id : null,
-                        'bin_id' => $bin ? $bin->id : null,
-                        'product_id' => $product->id,
-                        'sku_code' => $product->sku_code,
-                        'bin_code' => $binCode,
-                        'system_qty' => 0, // KUNCI UTAMA: Sistem menganggap 0
-                        'uom' => $product->uom,
-                        'stock_status' => 'GOOD',
-                    ]);
-                    $refDetailId = $newRef->id;
+                    try {
+                        // Buat Referensi WMS Palsu/Nol untuk memfasilitasi barang nyasar
+                        $newRef = OpnameReferenceDetail::create([
+                            'reference_id' => $session->reference_id,
+                            'warehouse_id' => $bin ? $bin->warehouse_id : null,
+                            'bin_id' => $bin ? $bin->id : null,
+                            'product_id' => $product->id,
+                            'sku_code' => $product->sku_code,
+                            'bin_code' => $binCode,
+                            'system_qty' => 0, // KUNCI UTAMA: Sistem menganggap 0
+                            'uom' => $product->uom,
+                            'stock_status' => 'GOOD',
+                        ]);
+                        $refDetailId = $newRef->id;
+                        
+                        // BUAT RESULT UNTUK BARANG NYASAR AGAR MUNCUL DI DASHBOARD
+                        \App\Models\OpnameResult::create([
+                            'result_uuid' => Str::uuid(),
+                            'session_id' => $session->id,
+                            'reference_detail_id' => $refDetailId,
+                            'system_qty' => 0,
+                            'team_a_qty' => null,
+                            'team_b_qty' => null,
+                            'recount1_qty' => null,
+                            'recount2_qty' => null,
+                            'final_qty' => null,
+                            'variance_qty' => null,
+                            'variance_percentage' => null,
+                            'result_status' => 'UNCOUNTED',
+                        ]);
+                    } catch (\Exception $e) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Gagal membuat referensi barang baru: ' . $e->getMessage()
+                        ], 500);
+                    }
                 }
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Produk dengan SKU ' . $idProduct . ' tidak ditemukan di server.'
+                ], 404);
             }
         }
 
