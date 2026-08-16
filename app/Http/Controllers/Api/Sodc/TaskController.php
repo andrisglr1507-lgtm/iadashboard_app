@@ -180,6 +180,12 @@ class TaskController extends Controller
 
         $mappedBins = array_values($binsAssoc);
 
+        if ($myGlobalTeamRole === 'TEAM_RECOUNT') {
+            $mappedBins = array_values(array_filter($mappedBins, function($bin) use ($recountBins) {
+                return isset($recountBins[$bin['bin_code']]);
+            }));
+        }
+
         // Fetch ALL master bins for the involved warehouses
         $warehouseIds = $details->pluck('warehouse_id')->unique()->filter()->toArray();
         $allWarehouseBins = [];
@@ -268,4 +274,5 @@ class TaskController extends Controller
         ]);
     }
 }
+
 
