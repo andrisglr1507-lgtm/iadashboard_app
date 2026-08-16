@@ -242,7 +242,7 @@ class TaskController extends Controller
         $user = $request->user();
         $myRecountsRaw = DB::table('opname_recount_assignments')
             ->where('session_id', $activeSession->id)
-            ->where('assigned_to', $user->user_id)
+            ->where('assigned_to', $user->id)
             ->where('location_code', $binCode)
             ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS'])
             ->get()

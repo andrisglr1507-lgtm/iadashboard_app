@@ -1,17 +1,23 @@
-<?php
-require 'vendor/autoload.php';
-$app = require_once 'bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
-$kernel->bootstrap();
+﻿<?php
+require __DIR__.'/vendor/autoload.php';
+\ = require_once __DIR__.'/bootstrap/app.php';
+\->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-use App\Models\OpnameRecountAssignment;
+\ = \App\Models\OpnameSession::where('status', 'ACTIVE')->first();
+\ = \App\Models\User::where('username', 'toni66')->first();
+if(!\) { echo 'User not found'; exit; }
+\ = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+    ->where('session_id', \->id)
+    ->where('assigned_to', \->id)
+    ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS'])
+    ->get();
+echo 'Recounts: ' . count(\) . PHP_EOL;
 
-try {
-    $assignments = OpnameRecountAssignment::all();
-    echo "Found " . $assignments->count() . " recount assignments.\n";
-    if ($assignments->count() > 0) {
-        print_r($assignments->first()->toArray());
-    }
-} catch (Exception $e) {
-    echo "Error: " . $e->getMessage() . "\n";
+\ = \App\Models\OpnameUserArea::where('session_id', \->id)
+    ->where('user_id', \->id)
+    ->get();
+echo 'Role: ' . (\->isNotEmpty() ? \->first()->team_role : 'UNASSIGNED') . PHP_EOL;
+
+foreach(\ as \) {
+   echo \->location_code . ' | ' . \->id_product . PHP_EOL;
 }
