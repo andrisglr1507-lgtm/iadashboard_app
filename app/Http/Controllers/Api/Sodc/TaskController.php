@@ -234,11 +234,6 @@ class TaskController extends Controller
             ->where('bin_code', $binCode)
             ->get();
 
-        $countedItems = \App\Models\OpnameCount::where('session_id', $activeSession->id)
-            ->whereIn('reference_detail_id', $details->pluck('id'))
-            ->get()
-            ->keyBy('reference_detail_id');
-
         $user = $request->user();
         $myRecountsRaw = DB::table('opname_recount_assignments')
             ->where('session_id', $activeSession->id)
@@ -248,23 +243,70 @@ class TaskController extends Controller
             ->get()
             ->keyBy('id_product');
 
-        $expectedItems = $details->map(function ($detail) use ($countedItems, $myRecountsRaw) {
-            $count = $countedItems->get($detail->id);
+        // Ambil semua counts untuk reference details di bin ini
+        $allCounts = \App\Models\OpnameCount::where('session_id', $activeSession->id)
+            ->whereIn('reference_detail_id', $details->pluck('id'))
+            ->get();
+            
+        // Ambil opname_results untuk referensi juri
+        $allResults = \App\Models\OpnameResult::where('session_id', $activeSession->id)
+            ->whereIn('reference_detail_id', $details->pluck('id'))
+            ->get()
+            ->keyBy('reference_detail_id');
+
+        $expectedItems = $details->map(function ($detail) use ($allCounts, $myRecountsRaw, $allResults, $user) {
             $productId = $detail->product->id_product ?? $detail->sku_code;
             $taskType = 'NORMAL';
+            $expectedSequence = 1;
+            
             if ($myRecountsRaw->has($productId)) {
-                $taskType = 'R' . ($myRecountsRaw->get($productId)->round_number ?? 1);
+                $roundNumber = $myRecountsRaw->get($productId)->round_number ?? 1;
+                $taskType = 'R' . $roundNumber;
+                $expectedSequence = $roundNumber + 1; // R1 -> seq 2, R2 -> seq 3
             }
+
+            // Cari count spesifik milik user/team ini sesuai sequence tugasnya
+            $myCount = null;
+            if ($taskType == 'NORMAL') {
+                $myCount = $allCounts->where('reference_detail_id', $detail->id)
+                                     ->where('counted_by', $user->id)
+                                     ->where('count_sequence', 1)
+                                     ->first();
+                if (!$myCount) {
+                    $myCount = $allCounts->where('reference_detail_id', $detail->id)->first();
+                }
+            } else {
+                // Untuk Recount, hanya terhitung jika ada count dengan sequence yang diminta
+                $myCount = $allCounts->where('reference_detail_id', $detail->id)
+                                     ->where('team_id', 'RECOUNT')
+                                     ->where('count_sequence', $expectedSequence)
+                                     ->first();
+            }
+
+            $resultRef = $allResults->get($detail->id);
+            // Kita coba extract team_a_qty (misal asumsikan jika pakai input karton dll belum tersimpan rinci di opname_results, minimal totalnya)
+            // Karena opname_counts punya rincian, kita bisa cari hitungan asli team A dan B
+            $countA = $allCounts->where('reference_detail_id', $detail->id)->where('team_id', 'TEAM_A')->where('count_sequence', 1)->first();
+            $countB = $allCounts->where('reference_detail_id', $detail->id)->where('team_id', 'TEAM_B')->where('count_sequence', 1)->first();
+
             return [
-                'id_product' => $detail->product->id_product ?? $detail->sku_code,
+                'id_product' => $productId,
                 'product_name' => $detail->product->product_name ?? 'Unknown Product',
                 'uom' => $detail->product->uom ?? 'PCS',
                 'reference_detail_id' => $detail->id,
-                'is_counted' => $count ? true : false,
-                'counted_qty_karton' => $count ? $count->input_karton : 0,
-                'counted_qty_pcs' => $count ? $count->input_pcs : 0,
-                'counted_final_qty' => $count ? $count->count_qty : 0,
+                'is_counted' => $myCount ? true : false,
+                'counted_qty_karton' => $myCount ? $myCount->input_karton : 0,
+                'counted_qty_pcs' => $myCount ? $myCount->input_pcs : 0,
+                'counted_final_qty' => $myCount ? $myCount->count_qty : 0,
                 'taskType' => $taskType,
+                // Referensi Tim A
+                'team_a_qty' => $resultRef ? $resultRef->team_a_qty : ($countA ? $countA->count_qty : null),
+                'team_a_karton' => $countA ? $countA->input_karton : 0,
+                'team_a_pcs' => $countA ? $countA->input_pcs : 0,
+                // Referensi Tim B
+                'team_b_qty' => $resultRef ? $resultRef->team_b_qty : ($countB ? $countB->count_qty : null),
+                'team_b_karton' => $countB ? $countB->input_karton : 0,
+                'team_b_pcs' => $countB ? $countB->input_pcs : 0,
             ];
         })->values()->toArray();
 

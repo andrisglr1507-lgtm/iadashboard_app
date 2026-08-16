@@ -158,12 +158,18 @@ class CountController extends Controller
         }
 
         if ($refDetailId) {
+            // Tentukan count_sequence berdasarkan apakah ini recount atau reguler
+            $targetSequence = 1;
+            if ($teamId === 'RECOUNT' && isset($recount)) {
+                $targetSequence = ($recount->round_number == 1) ? 2 : 3;
+            }
+
             // Simpan Hitungan ke opname_counts
             // Cek apakah tim ini sudah submit untuk ref ini sebelumnya (Mencegah double insert jika mereka resubmit)
             $existingCount = OpnameCount::where('session_id', $session->id)
                 ->where('team_id', $teamId)
                 ->where('reference_detail_id', $refDetailId)
-                ->where('count_sequence', 1) // Ini hitungan reguler (bukan R1/R2)
+                ->where('count_sequence', $targetSequence) // Dinamis sesuai round
                 ->first();
 
             if ($existingCount) {
@@ -187,11 +193,29 @@ class CountController extends Controller
                     'input_karton' => $qtyKarton,
                     'input_pcs' => $qtyPcs,
                     'count_status' => 'SUBMITTED',
-                    'count_sequence' => 1,
+                    'count_sequence' => $targetSequence,
                     'counted_by' => $user->id,
                     'counted_at' => now(),
                     'client_created_at' => now(),
                 ]);
+            }
+            
+            // Langsung update opname_results jika ini RECOUNT agar laravel web tidak menunjukkan 0
+            if ($targetSequence == 2 || $targetSequence == 3) {
+                $resultRow = \App\Models\OpnameResult::where('session_id', $session->id)
+                    ->where('reference_detail_id', $refDetailId)
+                    ->first();
+                if ($resultRow) {
+                    if ($targetSequence == 2) {
+                        $resultRow->recount1_qty = $qty;
+                    } else if ($targetSequence == 3) {
+                        $resultRow->recount2_qty = $qty;
+                    }
+                    $resultRow->save();
+                    
+                    // Juga update status ke RECOUNT_SUBMITTED agar bisa direkonsiliasi ulang nanti oleh web
+                    $resultRow->update(['result_status' => 'RECOUNT']);
+                }
             }
         }
 
