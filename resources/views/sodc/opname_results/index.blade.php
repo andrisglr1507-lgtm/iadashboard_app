@@ -85,7 +85,7 @@
                                 <div style="font-family: monospace; font-weight: 600;">
                                     {{ $res->referenceDetail->sku_code ?? '-' }}
                                     @if($isNyasar)
-                                        <span style="font-size: 0.65rem; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-family: sans-serif; font-weight: 800;">BARANG NYASAR</span>
+                                        <span title="Barang ini tidak ada di data awal WMS untuk Bin ini" style="font-size: 0.65rem; background: #64748b; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-family: sans-serif; font-weight: 800;">NON-WMS</span>
                                     @endif
                                 </div>
                                 <div style="font-size: 0.75rem; color: #64748b;">
