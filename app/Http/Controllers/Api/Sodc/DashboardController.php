@@ -32,7 +32,6 @@ class DashboardController extends Controller
             $sessionNo = $activeSession->session_name ?? 'Session ' . $sessionId;
             $wmsRef = "WMS-" . $sessionId; // Placeholder
             
-            // Get Active Principals dari wms reference atau tabel produk jika ada
             $activePrincipals = DB::table('opname_reference_details')
                 ->join('products', 'opname_reference_details.product_id', '=', 'products.id')
                 ->where('opname_reference_details.reference_id', $referenceId)
@@ -41,73 +40,108 @@ class DashboardController extends Controller
                 ->pluck('products.principal')
                 ->toArray();
                 
+            // Resolve Team IDs
+            $teamAIds = DB::table('opname_teams')->where('team_code', 'like', 'A%')->pluck('id')->toArray();
+            $teamBIds = DB::table('opname_teams')->where('team_code', 'like', 'B%')->pluck('id')->toArray();
+            $teamR1Ids = DB::table('opname_teams')->where('team_code', 'like', 'R1%')->pluck('id')->toArray();
+            $teamR2Ids = DB::table('opname_teams')->where('team_code', 'like', 'R2%')->pluck('id')->toArray();
+
             // 2. Bin Stats
             $totalBins = DB::table('opname_reference_details')
                 ->where('reference_id', $referenceId)
                 ->distinct('bin_code')
                 ->count('bin_code');
                 
-            $binsCompletedByA = DB::table('opname_counts')
-                ->join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
-                ->where('opname_counts.session_id', $sessionId)
-                ->where('opname_counts.team_id', 'like', 'A%')
-                ->distinct('opname_reference_details.bin_code')
-                ->count('opname_reference_details.bin_code');
+            $binsCompletedByA = 0;
+            if (count($teamAIds) > 0) {
+                $binsCompletedByA = DB::table('opname_counts')
+                    ->join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
+                    ->where('opname_counts.session_id', $sessionId)
+                    ->whereIn('opname_counts.team_id', $teamAIds)
+                    ->distinct('opname_reference_details.bin_code')
+                    ->count('opname_reference_details.bin_code');
+            }
+
+            $binsCompletedByB = 0;
+            if (count($teamBIds) > 0) {
+                $binsCompletedByB = DB::table('opname_counts')
+                    ->join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
+                    ->where('opname_counts.session_id', $sessionId)
+                    ->whereIn('opname_counts.team_id', $teamBIds)
+                    ->distinct('opname_reference_details.bin_code')
+                    ->count('opname_reference_details.bin_code');
+            }
                 
-            $binsCompletedByB = DB::table('opname_counts')
-                ->join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
-                ->where('opname_counts.session_id', $sessionId)
-                ->where('opname_counts.team_id', 'like', 'B%')
-                ->distinct('opname_reference_details.bin_code')
-                ->count('opname_reference_details.bin_code');
-                
-            $binsCompletedBoth = DB::table('opname_results')
+            $gapA = max(0, $totalBins - $binsCompletedByA);
+            $gapB = max(0, $totalBins - $binsCompletedByB);
+
+            // Match vs Recount (Bin Level)
+            $binsStatus = DB::table('opname_results')
                 ->join('opname_reference_details', 'opname_results.reference_detail_id', '=', 'opname_reference_details.id')
                 ->where('opname_results.session_id', $sessionId)
-                ->whereNotNull('opname_results.team_a_qty')
-                ->whereNotNull('opname_results.team_b_qty')
-                ->distinct('opname_reference_details.bin_code')
-                ->count('opname_reference_details.bin_code');
+                ->select('opname_reference_details.bin_code', 'opname_results.result_status')
+                ->get();
                 
-            $binsOnlyA = max(0, $binsCompletedByA - $binsCompletedBoth);
-            $binsOnlyB = max(0, $binsCompletedByB - $binsCompletedBoth);
+            $binsGrouping = [];
+            foreach($binsStatus as $row) {
+                $binsGrouping[$row->bin_code][] = $row->result_status;
+            }
             
+            $binsMatch = 0;
+            $binsRecount = 0;
+            
+            foreach($binsGrouping as $binCode => $statuses) {
+                if (in_array('RECOUNT', $statuses) || in_array('UNCOUNTED', $statuses)) {
+                    $binsRecount++;
+                } else {
+                    $binsMatch++;
+                }
+            }
+
             // 3. Item Stats
             $totalWmsSkus = DB::table('opname_reference_details')
                 ->where('reference_id', $referenceId)
                 ->count();
                 
-            $addItems = DB::table('opname_counts')
-                ->where('session_id', $sessionId)
-                ->whereNull('reference_detail_id') // Item yang tidak ada di wms reference
+            $addItems = DB::table('opname_reference_details')
+                ->where('reference_id', $referenceId)
+                ->where('system_qty', 0)
                 ->count();
-                
-            $itemsCountedByA = DB::table('opname_counts')
-                ->where('session_id', $sessionId)
-                ->where('team_id', 'like', 'A%')
-                ->distinct('reference_detail_id')
-                ->count('reference_detail_id');
-                
-            $itemsCountedByB = DB::table('opname_counts')
-                ->where('session_id', $sessionId)
-                ->where('team_id', 'like', 'B%')
-                ->distinct('reference_detail_id')
-                ->count('reference_detail_id');
-                
-            $gapA = max(0, $totalWmsSkus - $itemsCountedByA);
-            $gapB = max(0, $totalWmsSkus - $itemsCountedByB);
             
-            // 4. Recount Stats
-            $recountAssigned = DB::table('opname_recount_assignments')
-                ->where('session_id', $sessionId)
-                ->count();
-                
-            $recountDone = DB::table('opname_recount_assignments')
-                ->where('session_id', $sessionId)
-                ->where('status', 'COMPLETED')
-                ->count();
-                
-            $recountPending = max(0, $recountAssigned - $recountDone);
+            // 4. Recount Stats (Assignments)
+            $r1Assigned = 0;
+            $r1Done = 0;
+            if (count($teamR1Ids) > 0) {
+                $r1Assigned = DB::table('opname_assignments')
+                    ->where('session_id', $sessionId)
+                    ->whereIn('team_id', $teamR1Ids)
+                    ->distinct('reference_detail_id')
+                    ->count('reference_detail_id');
+
+                $r1Done = DB::table('opname_assignments')
+                    ->where('session_id', $sessionId)
+                    ->whereIn('team_id', $teamR1Ids)
+                    ->where('status', 'COMPLETED')
+                    ->distinct('reference_detail_id')
+                    ->count('reference_detail_id');
+            }
+
+            $r2Assigned = 0;
+            $r2Done = 0;
+            if (count($teamR2Ids) > 0) {
+                $r2Assigned = DB::table('opname_assignments')
+                    ->where('session_id', $sessionId)
+                    ->whereIn('team_id', $teamR2Ids)
+                    ->distinct('reference_detail_id')
+                    ->count('reference_detail_id');
+
+                $r2Done = DB::table('opname_assignments')
+                    ->where('session_id', $sessionId)
+                    ->whereIn('team_id', $teamR2Ids)
+                    ->where('status', 'COMPLETED')
+                    ->distinct('reference_detail_id')
+                    ->count('reference_detail_id');
+            }
             
             // 5. My Performance (Individual)
             $myCountedItems = DB::table('opname_counts')
@@ -133,22 +167,22 @@ class DashboardController extends Controller
                     ],
                     'bins' => [
                         'total' => $totalBins,
-                        'completed_both' => $binsCompletedBoth,
                         'completed_a' => $binsCompletedByA,
+                        'gap_a' => $gapA,
                         'completed_b' => $binsCompletedByB,
-                        'only_a' => $binsOnlyA,
-                        'only_b' => $binsOnlyB,
+                        'gap_b' => $gapB,
+                        'match' => $binsMatch,
+                        'recount' => $binsRecount,
                     ],
                     'items' => [
                         'total_wms_sku' => $totalWmsSkus,
                         'add_items' => $addItems,
-                        'gap_a' => $gapA,
-                        'gap_b' => $gapB,
                     ],
                     'recount' => [
-                        'assigned' => $recountAssigned,
-                        'done' => $recountDone,
-                        'pending' => $recountPending,
+                        'r1_assigned' => $r1Assigned,
+                        'r1_done' => $r1Done,
+                        'r2_assigned' => $r2Assigned,
+                        'r2_done' => $r2Done,
                     ],
                     'my_performance' => [
                         'total_scanned_items' => $myCountedItems,
