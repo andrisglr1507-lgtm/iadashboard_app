@@ -26,6 +26,7 @@ class DashboardController extends Controller
             }
             
             $sessionId = $activeSession->id;
+            $referenceId = $activeSession->reference_id;
             
             // 1. Session Info
             $sessionNo = $activeSession->session_name ?? 'Session ' . $sessionId;
@@ -33,16 +34,16 @@ class DashboardController extends Controller
             
             // Get Active Principals dari wms reference atau tabel produk jika ada
             $activePrincipals = DB::table('opname_reference_details')
-                ->join('master_products', 'opname_reference_details.id_product', '=', 'master_products.id_product')
-                ->where('opname_reference_details.session_id', $sessionId)
-                ->whereNotNull('master_products.principal')
+                ->join('products', 'opname_reference_details.product_id', '=', 'products.id')
+                ->where('opname_reference_details.reference_id', $referenceId)
+                ->whereNotNull('products.principal')
                 ->distinct()
-                ->pluck('master_products.principal')
+                ->pluck('products.principal')
                 ->toArray();
                 
             // 2. Bin Stats
             $totalBins = DB::table('opname_reference_details')
-                ->where('session_id', $sessionId)
+                ->where('reference_id', $referenceId)
                 ->distinct('bin_code')
                 ->count('bin_code');
                 
@@ -73,7 +74,7 @@ class DashboardController extends Controller
             
             // 3. Item Stats
             $totalWmsSkus = DB::table('opname_reference_details')
-                ->where('session_id', $sessionId)
+                ->where('reference_id', $referenceId)
                 ->count();
                 
             $addItems = DB::table('opname_counts')
