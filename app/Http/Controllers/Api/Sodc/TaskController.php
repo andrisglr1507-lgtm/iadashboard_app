@@ -59,11 +59,14 @@ class TaskController extends Controller
             ->toArray();
 
         // Fetch my recount assignments for this session
-        $myRecountsRaw = DB::table('opname_recount_assignments')
-            ->where('session_id', $activeSession->id)
-            ->where('assigned_to', $user->user_id)
-            ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS']) // Assuming these statuses mean active
-            ->get();
+        $myRecountsRaw = collect([]);
+        if (\Illuminate\Support\Facades\Schema::hasTable('opname_recount_assignments')) {
+            $myRecountsRaw = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                ->where('session_id', $activeSession->id)
+                ->where('assigned_to', $user->id) // Fix: use user->id instead of user_id
+                ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS'])
+                ->get();
+        }
             
         // Map recount tasks by bin_code and sku
         $recountBins = [];
@@ -265,3 +268,4 @@ class TaskController extends Controller
         ]);
     }
 }
+
