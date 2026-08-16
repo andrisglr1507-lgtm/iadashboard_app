@@ -104,12 +104,14 @@ Route::prefix('sodc')->name('sodc.')->group(function () {
     Route::resource('references', \App\Http\Controllers\Sodc\Management\ReferenceController::class);
     Route::post('sessions/{id}/start', [\App\Http\Controllers\Sodc\Management\SessionController::class, 'start'])->name('sessions.start');
     Route::resource('sessions', \App\Http\Controllers\Sodc\Management\SessionController::class);
+    Route::post('assignments/store_recount_team', [\App\Http\Controllers\Sodc\Management\AssignmentController::class, 'storeRecountTeam'])->name('assignments.store_recount_team');
     Route::resource('assignments', \App\Http\Controllers\Sodc\Management\AssignmentController::class);
     
     // Opname Results (Placeholder)
     Route::get('/sync_logs', function() { return 'Sync Logs'; })->name('sync_logs.index');
     Route::get('/results', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'index'])->name('results.index');
     Route::post('/results/recount', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'inputRecount'])->name('results.input_recount');
+    Route::post('/results/bulk-dispatch', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'bulkDispatch'])->name('results.bulk_dispatch');
     Route::get('/approvals', function() { return 'Approvals'; })->name('approvals.index');
 });
 });

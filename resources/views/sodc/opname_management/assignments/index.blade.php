@@ -57,6 +57,34 @@
             <span class="badge bg-dark">{{ $session->mode }} MODE</span>
         </div>
 
+        <div class="glass-card p-4 mb-4" style="border-left: 4px solid #f59e0b;">
+            <h5 class="font-weight-bold text-warning mb-3"><i class="fas fa-users-cog me-2"></i> Konfigurasi Tim Recount Global</h5>
+            <p class="text-muted small">Anggota tim yang di-set di bawah ini akan bertugas khusus untuk melakukan hitung ulang (Recount 1 dan Recount 2). Ketika Anda melempar tugas recount dari halaman hasil, tugas tersebut akan otomatis masuk ke aplikasi Flutter mereka semua.</p>
+            
+            <form action="{{ route('sodc.assignments.store_recount_team') }}" method="POST">
+                @csrf
+                <input type="hidden" name="session_id" value="{{ $session->id }}">
+                <div class="row align-items-end">
+                    <div class="col-md-10">
+                        @php
+                            $teamRecount = isset($assignmentsMap['GLOBAL_RECOUNT']) ? collect($assignmentsMap['GLOBAL_RECOUNT'])->pluck('user_id')->toArray() : [];
+                        @endphp
+                        <label class="form-label font-weight-bold">Anggota Tim Recount</label>
+                        <select name="team_recount_users[]" class="form-select select2-multiple" multiple="multiple" style="width: 100%;">
+                            @foreach($users as $user)
+                                <option value="{{ $user->id }}" {{ in_array($user->id, $teamRecount) ? 'selected' : '' }}>
+                                    {{ $user->full_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2 mt-3 mt-md-0">
+                        <button type="submit" class="btn btn-warning text-dark font-weight-bold w-100"><i class="fas fa-save me-1"></i> Simpan Tim</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
         <div class="glass-card p-4">
             <table class="table table-bordered align-middle">
                 <thead style="background-color: #f1f5f9;">

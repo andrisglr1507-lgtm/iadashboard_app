@@ -41,10 +41,14 @@ class AssignmentController extends Controller
             $currentAssignments = \App\Models\OpnameUserArea::where('session_id', $session->id)->with('user')->get();
             foreach ($currentAssignments as $asg) {
                 $key = $asg->warehouse_id . '_' . ($asg->aisle ?? 'ALL');
-                if (!isset($assignmentsMap[$key])) {
-                    $assignmentsMap[$key] = ['TEAM_A' => [], 'TEAM_B' => []];
+                if ($asg->team_role === 'TEAM_RECOUNT') {
+                    $assignmentsMap['GLOBAL_RECOUNT'][] = $asg;
+                } else {
+                    if (!isset($assignmentsMap[$key])) {
+                        $assignmentsMap[$key] = ['TEAM_A' => [], 'TEAM_B' => []];
+                    }
+                    $assignmentsMap[$key][$asg->team_role][] = $asg;
                 }
-                $assignmentsMap[$key][$asg->team_role][] = $asg;
             }
         }
         
@@ -110,5 +114,42 @@ class AssignmentController extends Controller
         }
 
         return redirect()->route('sodc.assignments.index')->with('success', 'Assignment berhasil disimpan untuk Gudang ' . $warehouseId . ($aisle ? ' Lorong ' . $aisle : ''));
+    }
+
+    public function storeRecountTeam(Request $request)
+    {
+        $request->validate([
+            'session_id' => 'required|exists:opname_sessions,id',
+            'team_recount_users' => 'nullable|array'
+        ]);
+
+        $sessionId = $request->session_id;
+
+        // Hapus konfigurasi tim recount global sebelumnya
+        \App\Models\OpnameUserArea::where('session_id', $sessionId)
+            ->where('team_role', 'TEAM_RECOUNT')
+            ->delete();
+
+        $inserts = [];
+
+        if ($request->team_recount_users) {
+            foreach ($request->team_recount_users as $userId) {
+                $inserts[] = [
+                    'session_id' => $sessionId,
+                    'warehouse_id' => 'ALL',
+                    'aisle' => 'ALL',
+                    'user_id' => $userId,
+                    'team_role' => 'TEAM_RECOUNT',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+        }
+
+        if (!empty($inserts)) {
+            \App\Models\OpnameUserArea::insert($inserts);
+        }
+
+        return redirect()->route('sodc.assignments.index')->with('success', 'Tim Recount Global berhasil di-set!');
     }
 }
