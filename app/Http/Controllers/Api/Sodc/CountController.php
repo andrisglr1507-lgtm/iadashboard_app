@@ -62,11 +62,14 @@ class CountController extends Controller
                 $teamId = $area->team_role;
             } else {
                 // Cek apakah user punya assignment recount
-                $recount = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
-                    ->where('session_id', $session->id)
-                    ->where('assigned_to', $user->user_id)
-                    ->where('location_code', $bin->bin_code)
-                    ->first();
+                $recount = null;
+                if (\Illuminate\Support\Facades\Schema::hasTable('opname_recount_assignments')) {
+                    $recount = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                        ->where('session_id', $session->id)
+                        ->where('assigned_to', $user->id) // Fix: use user->id instead of user_id
+                        ->where('location_code', $bin->bin_code)
+                        ->first();
+                }
                     
                 if ($recount) {
                     $teamId = 'RECOUNT';
@@ -303,4 +306,5 @@ class CountController extends Controller
         return response()->json(['success' => true, 'message' => 'Data tidak ditemukan, namun dianggap sudah terhapus.']);
     }
 }
+
 
