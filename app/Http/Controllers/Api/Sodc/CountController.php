@@ -61,11 +61,22 @@ class CountController extends Controller
                 // Gunakan string team_role secara langsung karena kolom di DB sudah diubah jadi string
                 $teamId = $area->team_role;
             } else {
-                // Jika user tidak di-assign ke gudang/lorong ini, tolak submit
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Anda tidak memiliki assignment (penugasan) di Gudang/Lorong ini!'
-                ], 403);
+                // Cek apakah user punya assignment recount
+                $recount = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                    ->where('session_id', $session->id)
+                    ->where('assigned_to', $user->user_id)
+                    ->where('location_code', $bin->bin_code)
+                    ->first();
+                    
+                if ($recount) {
+                    $teamId = 'RECOUNT';
+                } else {
+                    // Jika user tidak di-assign ke gudang/lorong ini, tolak submit
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Anda tidak memiliki assignment (penugasan) di Gudang/Lorong ini!'
+                    ], 403);
+                }
             }
         }
 
@@ -292,3 +303,4 @@ class CountController extends Controller
         return response()->json(['success' => true, 'message' => 'Data tidak ditemukan, namun dianggap sudah terhapus.']);
     }
 }
+

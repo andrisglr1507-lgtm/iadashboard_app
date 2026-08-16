@@ -75,8 +75,7 @@ class AssignmentController extends Controller
 
         if ($request->team_a_users) {
             foreach ($request->team_a_users as $userId) {
-                // Ensure user isn't assigned to another area in this session (optional, but good for data integrity)
-                \App\Models\OpnameUserArea::where('session_id', $sessionId)->where('user_id', $userId)->delete();
+                // Jangan hapus penugasan di lorong lain, karena 1 user bisa pegang banyak lorong
                 
                 $inserts[] = [
                     'session_id' => $sessionId,
@@ -92,7 +91,7 @@ class AssignmentController extends Controller
 
         if ($request->team_b_users) {
             foreach ($request->team_b_users as $userId) {
-                \App\Models\OpnameUserArea::where('session_id', $sessionId)->where('user_id', $userId)->delete();
+                // Jangan hapus penugasan di lorong lain, karena 1 user bisa pegang banyak lorong
                 
                 $inserts[] = [
                     'session_id' => $sessionId,

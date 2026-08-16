@@ -58,6 +58,22 @@ class TaskController extends Controller
             ->pluck('products.principal')
             ->toArray();
 
+        // Fetch my recount assignments for this session
+        $myRecountsRaw = DB::table('opname_recount_assignments')
+            ->where('session_id', $activeSession->id)
+            ->where('assigned_to', $user->user_id)
+            ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS']) // Assuming these statuses mean active
+            ->get();
+            
+        // Map recount tasks by bin_code and sku
+        $recountBins = [];
+        $recountItems = []; // bin_code_sku => round_number
+        foreach ($myRecountsRaw as $r) {
+            $rType = 'R' . ($r->round_number ?? 1);
+            $recountBins[$r->location_code] = $rType;
+            $recountItems[$r->location_code . '_' . $r->id_product] = $rType;
+        }
+
         // 3. Find the user's assigned areas (can be multiple)
         $myAreas = \App\Models\OpnameUserArea::where('session_id', $activeSession->id)
             ->where('user_id', $user->id)
@@ -142,6 +158,7 @@ class TaskController extends Controller
                     'counted_by_teams' => isset($countedStatus[$code]) ? array_values(array_unique($countedStatus[$code])) : [],
                     'actual_principals' => isset($countedPrincipals[$code]) ? array_values(array_unique($countedPrincipals[$code])) : [],
                     'is_ad_hoc' => true, // Will be set to false if any item has system_qty > 0
+                    'taskType' => $recountBins[$code] ?? 'NORMAL', // Attach recount type
                     'expected_items' => []
                 ];
             }
@@ -213,8 +230,22 @@ class TaskController extends Controller
             ->get()
             ->keyBy('reference_detail_id');
 
-        $expectedItems = $details->map(function ($detail) use ($countedItems) {
+        $user = $request->user();
+        $myRecountsRaw = DB::table('opname_recount_assignments')
+            ->where('session_id', $activeSession->id)
+            ->where('assigned_to', $user->user_id)
+            ->where('location_code', $binCode)
+            ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS'])
+            ->get()
+            ->keyBy('id_product');
+
+        $expectedItems = $details->map(function ($detail) use ($countedItems, $myRecountsRaw) {
             $count = $countedItems->get($detail->id);
+            $productId = $detail->product->id_product ?? $detail->sku_code;
+            $taskType = 'NORMAL';
+            if ($myRecountsRaw->has($productId)) {
+                $taskType = 'R' . ($myRecountsRaw->get($productId)->round_number ?? 1);
+            }
             return [
                 'id_product' => $detail->product->id_product ?? $detail->sku_code,
                 'product_name' => $detail->product->product_name ?? 'Unknown Product',
@@ -224,6 +255,7 @@ class TaskController extends Controller
                 'counted_qty_karton' => $count ? $count->input_karton : 0,
                 'counted_qty_pcs' => $count ? $count->input_pcs : 0,
                 'counted_final_qty' => $count ? $count->count_qty : 0,
+                'taskType' => $taskType,
             ];
         })->values()->toArray();
 
