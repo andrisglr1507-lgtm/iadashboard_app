@@ -39,10 +39,8 @@ class DashboardController extends Controller
                 ->distinct()
                 ->pluck('products.principal')
                 ->toArray();
-                
-            // Resolve Team IDs
-            $teamAIds = DB::table('opname_teams')->where('team_code', 'like', 'A%')->pluck('id')->toArray();
-            $teamBIds = DB::table('opname_teams')->where('team_code', 'like', 'B%')->pluck('id')->toArray();
+
+            // Resolve Recount Team IDs (For assignments)
             $teamR1Ids = DB::table('opname_teams')->where('team_code', 'like', 'R1%')->pluck('id')->toArray();
             $teamR2Ids = DB::table('opname_teams')->where('team_code', 'like', 'R2%')->pluck('id')->toArray();
 
@@ -52,25 +50,21 @@ class DashboardController extends Controller
                 ->distinct('bin_code')
                 ->count('bin_code');
                 
-            $binsCompletedByA = 0;
-            if (count($teamAIds) > 0) {
-                $binsCompletedByA = DB::table('opname_counts')
-                    ->join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
-                    ->where('opname_counts.session_id', $sessionId)
-                    ->whereIn('opname_counts.team_id', $teamAIds)
-                    ->distinct('opname_reference_details.bin_code')
-                    ->count('opname_reference_details.bin_code');
-            }
+            // Bins Completed by A
+            $binsCompletedByA = DB::table('opname_results')
+                ->join('opname_reference_details', 'opname_results.reference_detail_id', '=', 'opname_reference_details.id')
+                ->where('opname_results.session_id', $sessionId)
+                ->whereNotNull('opname_results.team_a_qty')
+                ->distinct('opname_reference_details.bin_code')
+                ->count('opname_reference_details.bin_code');
 
-            $binsCompletedByB = 0;
-            if (count($teamBIds) > 0) {
-                $binsCompletedByB = DB::table('opname_counts')
-                    ->join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
-                    ->where('opname_counts.session_id', $sessionId)
-                    ->whereIn('opname_counts.team_id', $teamBIds)
-                    ->distinct('opname_reference_details.bin_code')
-                    ->count('opname_reference_details.bin_code');
-            }
+            // Bins Completed by B
+            $binsCompletedByB = DB::table('opname_results')
+                ->join('opname_reference_details', 'opname_results.reference_detail_id', '=', 'opname_reference_details.id')
+                ->where('opname_results.session_id', $sessionId)
+                ->whereNotNull('opname_results.team_b_qty')
+                ->distinct('opname_reference_details.bin_code')
+                ->count('opname_reference_details.bin_code');
                 
             $gapA = max(0, $totalBins - $binsCompletedByA);
             $gapB = max(0, $totalBins - $binsCompletedByB);
