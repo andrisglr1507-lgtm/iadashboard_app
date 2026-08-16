@@ -49,37 +49,30 @@ class CountController extends Controller
         
         $teamId = null;
         if ($bin) {
+            // "Free-for-all" mode: Just get the user's team role for this session
             $area = \App\Models\OpnameUserArea::where('session_id', $session->id)
                 ->where('user_id', $user->id)
-                ->where('warehouse_id', $bin->warehouse_id)
-                ->where(function($q) use ($bin) {
-                    $q->where('aisle', $bin->aisle)->orWhereNull('aisle');
-                })
                 ->first();
                 
             if ($area && $area->team_role) {
-                // Gunakan string team_role secara langsung karena kolom di DB sudah diubah jadi string
                 $teamId = $area->team_role;
             } else {
-                // Cek apakah user punya assignment recount
-                $recount = null;
-                if (\Illuminate\Support\Facades\Schema::hasTable('opname_recount_assignments')) {
-                    $recount = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
-                        ->where('session_id', $session->id)
-                        ->where('assigned_to', $user->id) // Fix: use user->id instead of user_id
-                        ->where('location_code', $bin->bin_code)
-                        ->first();
-                }
-                    
+                // Gunakan team dari request jika tersedia
+                $teamId = $request->team ?? 'UNKNOWN';
+            }
+            
+            // Override with RECOUNT team if it is a recount task
+            if (\Illuminate\Support\Facades\Schema::hasTable('opname_recount_assignments')) {
+                $recount = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                    ->where('session_id', $session->id)
+                    ->where('assigned_to', $user->id)
+                    ->where('location_code', $bin->bin_code)
+                    ->first();
                 if ($recount) {
                     $teamId = 'RECOUNT';
-                } else {
-                    // Jika user tidak di-assign ke gudang/lorong ini, tolak submit
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Anda tidak memiliki assignment (penugasan) di Gudang/Lorong ini!'
-                    ], 403);
                 }
+            }
+        }
             }
         }
 
@@ -306,5 +299,6 @@ class CountController extends Controller
         return response()->json(['success' => true, 'message' => 'Data tidak ditemukan, namun dianggap sudah terhapus.']);
     }
 }
+
 
 
