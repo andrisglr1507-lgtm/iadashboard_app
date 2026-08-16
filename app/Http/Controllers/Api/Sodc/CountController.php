@@ -73,8 +73,6 @@ class CountController extends Controller
                 }
             }
         }
-            }
-        }
 
         $binCode = $request->bin_code;
         $bin = Bin::where('bin_code', $binCode)->first();
@@ -299,6 +297,7 @@ class CountController extends Controller
         return response()->json(['success' => true, 'message' => 'Data tidak ditemukan, namun dianggap sudah terhapus.']);
     }
 }
+
 
 
 
