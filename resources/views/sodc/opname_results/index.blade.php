@@ -4,9 +4,9 @@
 
 @section('page_actions')
 @if(isset($activeSessions) && $activeSessions->count() > 0)
-<form action="{{ route('sodc.results.index') }}" method="GET" style="display: inline-flex; align-items: center; gap: 10px;">
-    <label style="color: #64748b; font-weight: 600; font-size: 0.85rem;">Pilih Sesi:</label>
-    <select name="session_id" onchange="this.form.submit()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.85rem; font-weight: 600; color: #334155;">
+<form action="{{ route('sodc.results.index') }}" method="GET" class="d-inline-flex align-items-center gap-2">
+    <label class="mb-0 text-secondary fw-semibold small">Pilih Sesi:</label>
+    <select name="session_id" onchange="this.form.submit()" class="form-select form-select-sm" style="width: auto; min-width: 180px;">
         @foreach($activeSessions as $s)
             <option value="{{ $s->id }}" {{ (isset($activeSessionId) && $activeSessionId == $s->id) ? 'selected' : '' }}>
                 {{ $s->session_code }} ({{ $s->mode }})
@@ -16,25 +16,26 @@
 </form>
 @endif
 @endsection
+
 @section('content')
 
 @if(isset($error))
-    <div style="background: #fff1f2; border: 1px solid #fecdd3; color: #be123c; padding: 14px 16px; border-radius: 10px; margin-bottom: 16px;">
-        <i class="fas fa-exclamation-triangle"></i> {{ $error }}
+    <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i> {{ $error }}
     </div>
 @else
     @if(session('success'))
-        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-            <i class="fas fa-check-circle"></i> {{ session('success') }}
+        <div class="alert alert-success d-flex align-items-center" role="alert">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
         </div>
     @endif
 
-    <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: hidden;">
-        <div style="padding: 16px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
-            <h3 style="margin: 0; color: #0f172a; font-size: 1.1rem;">Data Rekonsiliasi</h3>
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 text-dark">Data Rekonsiliasi</h5>
             
-            <form method="GET" action="{{ route('sodc.results.index') }}" style="display: flex; gap: 10px;">
-                <select name="status" onchange="this.form.submit()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.85rem; outline: none;">
+            <form method="GET" action="{{ route('sodc.results.index') }}" class="d-flex gap-2">
+                <select name="status" onchange="this.form.submit()" class="form-select form-select-sm" style="min-width: 160px;">
                     <option value="">Semua Status</option>
                     <option value="MATCH" {{ request('status') == 'MATCH' ? 'selected' : '' }}>MATCH</option>
                     <option value="RECOUNT_1" {{ request('status') == 'RECOUNT_1' ? 'selected' : '' }}>Butuh RECOUNT 1</option>
@@ -48,31 +49,31 @@
         <form id="bulkRecountForm" method="POST" action="{{ route('sodc.results.bulk_dispatch') }}">
             @csrf
             
-            <div style="padding: 12px 16px; background: #fffbeb; border-bottom: 1px solid #fde68a; display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-size: 0.85rem; color: #b45309;">
+            <div class="alert alert-warning rounded-0 mb-0 d-flex justify-content-between align-items-center py-2 px-3" style="border-left: none; border-right: none;">
+                <div class="small text-warning-emphasis">
                     <i class="fas fa-info-circle me-1"></i> Centang hasil yang butuh hitung ulang (Recount), lalu klik tombol di sebelah kanan untuk mengirim tugas ke Tim Recount.
                 </div>
-                <button type="submit" class="btn btn-sm btn-warning" style="font-weight: 600; font-size: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onclick="return confirm('Yakin ingin mengirim tugas recount ke semua anggota Tim Recount Global?')">
+                <button type="submit" class="btn btn-warning btn-sm fw-semibold shadow-sm" onclick="return confirm('Yakin ingin mengirim tugas recount ke semua anggota Tim Recount Global?')">
                     <i class="fas fa-paper-plane me-1"></i> Kirim ke Tim Recount
                 </button>
             </div>
 
-        <div style="overflow-x: auto;">
-            <table class="premium-table" style="width: 100%; border-collapse: collapse; min-width: 1000px;">
-                <thead>
-                    <tr style="background: #f1f5f9; text-align: left; font-size: 0.8rem; color: #475569;">
-                        <th style="padding: 12px 16px; width: 40px; text-align: center;">
-                            <input type="checkbox" id="selectAllRecount" style="cursor: pointer;">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0" style="min-width: 1100px;">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-center" style="width: 40px;">
+                            <input type="checkbox" id="selectAllRecount" class="form-check-input">
                         </th>
-                        <th style="padding: 12px 16px;">Bin / SKU</th>
-                        <th style="padding: 12px 16px; text-align: right;">WMS Qty</th>
-                        <th style="padding: 12px 16px; text-align: right;">Team A</th>
-                        <th style="padding: 12px 16px; text-align: right;">Team B</th>
-                        <th style="padding: 12px 16px; text-align: right;">Recount 1</th>
-                        <th style="padding: 12px 16px; text-align: right;">Recount 2</th>
-                        <th style="padding: 12px 16px; text-align: right;">Final Qty</th>
-                        <th style="padding: 12px 16px; text-align: center;">Status</th>
-                        <th style="padding: 12px 16px; text-align: center;">Aksi</th>
+                        <th>Bin / SKU</th>
+                        <th class="text-end">WMS Qty</th>
+                        <th class="text-end">Team A</th>
+                        <th class="text-end">Team B</th>
+                        <th class="text-end">Recount 1</th>
+                        <th class="text-end">Recount 2</th>
+                        <th class="text-end">Final Qty</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -83,105 +84,112 @@
                             $isR1 = $res->result_status == 'RECOUNT' && is_null($res->recount1_qty);
                             $isR2 = $res->result_status == 'RECOUNT' && !is_null($res->recount1_qty) && is_null($res->recount2_qty);
                             
-                            $badgeColor = '#94a3b8'; // default UNCOUNTED
+                            $badgeClass = 'bg-secondary'; // default UNCOUNTED
                             $badgeText = $res->result_status;
                             
-                            if ($isMatch) { $badgeColor = '#10b981'; } // green
-                            if ($isFinal) { $badgeColor = '#3b82f6'; } // blue
-                            if ($isR1) { $badgeColor = '#f59e0b'; $badgeText = 'RECOUNT 1'; } // yellow
-                            if ($isR2) { $badgeColor = '#ef4444'; $badgeText = 'RECOUNT 2'; } // red
-                            if (str_starts_with($res->result_status, 'WAITING')) { $badgeColor = '#8b5cf6'; } // purple
+                            if ($isMatch) { $badgeClass = 'bg-success'; }
+                            if ($isFinal) { $badgeClass = 'bg-primary'; }
+                            if ($isR1) { $badgeClass = 'bg-warning text-dark'; $badgeText = 'RECOUNT 1'; }
+                            if ($isR2) { $badgeClass = 'bg-danger'; $badgeText = 'RECOUNT 2'; }
+                            if (str_starts_with($res->result_status, 'WAITING')) { $badgeClass = 'bg-purple'; }
                             
                             $isNyasar = (float)$res->system_qty == 0;
                         @endphp
-                        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; {{ $isNyasar ? 'background-color: #fef9c3;' : '' }}">
-                            <td style="padding: 12px 16px; text-align: center;">
-                                <input type="checkbox" name="result_ids[]" value="{{ $res->id }}" class="recount-checkbox" 
-                                    {{ ($isR1 || $isR2) ? '' : 'disabled' }} style="cursor: pointer;">
+                        <tr class="{{ $isNyasar ? 'table-warning' : '' }} align-middle">
+                            <td class="text-center">
+                                <input type="checkbox" name="result_ids[]" value="{{ $res->id }}" class="form-check-input recount-checkbox" 
+                                    {{ ($isR1 || $isR2) ? '' : 'disabled' }}>
                             </td>
-                            <td style="padding: 12px 16px;">
-                                <div style="font-weight: 700; color: #0ea5e9;">{{ $res->referenceDetail->bin_code ?? '-' }}</div>
-                                <div style="font-family: monospace; font-weight: 600;">
-                                    {{ $res->referenceDetail->sku_code ?? '-' }}
+                            <td>
+                                <div class="fw-bold text-primary">{{ $res->referenceDetail->bin_code ?? '-' }}</div>
+                                <div>
+                                    <span class="font-monospace fw-semibold">{{ $res->referenceDetail->sku_code ?? '-' }}</span>
                                     @if($isNyasar)
-                                        <span title="Barang ini tidak ada di data awal WMS untuk Bin ini" style="font-size: 0.65rem; background: #64748b; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-family: sans-serif; font-weight: 800;">NON-WMS</span>
+                                        <span class="badge bg-dark ms-1" title="Barang ini tidak ada di data awal WMS untuk Bin ini" style="font-size: 0.6rem;">NON-WMS</span>
                                     @endif
                                 </div>
-                                <div style="font-size: 0.75rem; color: #64748b;">
-                                    <strong style="color: #334155;">{{ Str::limit($res->referenceDetail->product->sku_name ?? 'Unknown Product', 40) }}</strong><br>
+                                <div class="small text-secondary">
+                                    <strong class="text-dark">{{ Str::limit($res->referenceDetail->product->sku_name ?? 'Unknown Product', 40) }}</strong><br>
                                     UOM: {{ $res->referenceDetail->product->uom ?? '-' }} | Pack: {{ $res->referenceDetail->product->packname ?? '-' }}
                                 </div>
                             </td>
-                            <td style="padding: 12px 16px; text-align: right; font-weight: 600;">{{ (float)$res->system_qty }}</td>
-                            <td style="padding: 12px 16px; text-align: right;">{{ is_null($res->team_a_qty) ? '-' : (float)$res->team_a_qty }}</td>
-                            <td style="padding: 12px 16px; text-align: right;">{{ is_null($res->team_b_qty) ? '-' : (float)$res->team_b_qty }}</td>
-                            <td style="padding: 12px 16px; text-align: right; font-weight: bold; color: #d97706;">
+                            <td class="text-end fw-semibold">{{ (float)$res->system_qty }}</td>
+                            <td class="text-end">{{ is_null($res->team_a_qty) ? '-' : (float)$res->team_a_qty }}</td>
+                            <td class="text-end">{{ is_null($res->team_b_qty) ? '-' : (float)$res->team_b_qty }}</td>
+                            <td class="text-end fw-semibold text-warning">
                                 {{ is_null($res->recount1_qty) ? '-' : (float)$res->recount1_qty }}
                             </td>
-                            <td style="padding: 12px 16px; text-align: right; font-weight: bold; color: #b91c1c;">
+                            <td class="text-end fw-semibold text-danger">
                                 {{ is_null($res->recount2_qty) ? '-' : (float)$res->recount2_qty }}
                             </td>
-                            <td style="padding: 12px 16px; text-align: right; font-weight: 800; font-size: 0.95rem; color: #0f172a;">
+                            <td class="text-end fw-bold fs-6 text-dark">
                                 {{ is_null($res->final_qty) ? '-' : (float)$res->final_qty }}
                             </td>
-                            <td style="padding: 12px 16px; text-align: center;">
-                                <span style="background: {{ $badgeColor }}; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">
+                            <td class="text-center">
+                                <span class="badge {{ $badgeClass }} px-3 py-2" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">
                                     {{ $badgeText }}
                                 </span>
                             </td>
-                            <td style="padding: 12px 16px; text-align: center;">
+                            <td class="text-center">
                                 @if($isR1 || $isR2)
-                                    <button type="button" onclick="openRecountModal({{ $res->id }}, {{ $isR1 ? 1 : 2 }}, '{{ $res->referenceDetail->bin_code }}', '{{ $res->referenceDetail->sku_code }}')" style="background: #0f172a; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
+                                    <button type="button" onclick="openRecountModal({{ $res->id }}, {{ $isR1 ? 1 : 2 }}, '{{ $res->referenceDetail->bin_code }}', '{{ $res->referenceDetail->sku_code }}')" class="btn btn-dark btn-sm fw-semibold">
                                         Input R{{ $isR1 ? 1 : 2 }}
                                     </button>
                                 @else
-                                    <span style="color: #cbd5e1;">-</span>
+                                    <span class="text-secondary">-</span>
                                 @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" style="text-align: center; padding: 40px; color: #64748b;">Tidak ada data yang ditemukan.</td>
+                            <td colspan="10" class="text-center py-5 text-secondary">
+                                <i class="fas fa-inbox fa-2x d-block mb-2"></i>
+                                Tidak ada data yang ditemukan.
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
         </form>
-        <div style="padding: 16px; border-top: 1px solid #e2e8f0; background: #f8fafc;" class="pagination-wrapper">
+        <div class="card-footer bg-light">
             {{ $results->links() }}
         </div>
     </div>
 @endif
 
 <!-- Recount Modal -->
-<div id="recountModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: white; width: 400px; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-        <div style="background: #0f172a; padding: 16px; color: white; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0; font-size: 1.1rem;">Input Hitung Ulang</h3>
-            <button type="button" onclick="closeRecountModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0;">&times;</button>
-        </div>
-        <form method="POST" action="{{ route('sodc.results.input_recount') }}">
-            @csrf
-            <div style="padding: 20px;">
-                <input type="hidden" name="result_id" id="modalResultId">
-                <input type="hidden" name="level" id="modalLevel">
-                
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 6px;">Bin / SKU</label>
-                    <div id="modalProductInfo" style="font-weight: 700; color: #0f172a; font-size: 1rem;">-</div>
-                </div>
+<div id="recountModal" class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">Input Hitung Ulang</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeRecountModal()"></button>
+            </div>
+            <form method="POST" action="{{ route('sodc.results.input_recount') }}">
+                @csrf
+                <div class="modal-body">
+                    <input type="hidden" name="result_id" id="modalResultId">
+                    <input type="hidden" name="level" id="modalLevel">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-secondary">Bin / SKU</label>
+                        <div id="modalProductInfo" class="fw-bold fs-6 text-dark p-2 bg-light rounded">-</div>
+                    </div>
 
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 6px;">Hasil Qty (Recount <span id="modalLevelText"></span>)</label>
-                    <input type="number" step="0.01" name="recount_qty" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-size: 1rem; box-sizing: border-box;">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-secondary">Hasil Qty (Recount <span id="modalLevelText"></span>)</label>
+                        <input type="number" step="0.01" name="recount_qty" required class="form-control" placeholder="Masukkan jumlah hasil recount">
+                    </div>
                 </div>
-            </div>
-            <div style="padding: 16px; background: #f8fafc; border-top: 1px solid #e2e8f0; text-align: right;">
-                <button type="button" onclick="closeRecountModal()" style="padding: 8px 16px; border: none; background: #e2e8f0; color: #475569; border-radius: 6px; font-weight: 600; cursor: pointer; margin-right: 8px;">Batal</button>
-                <button type="submit" style="padding: 8px 16px; border: none; background: #0ea5e9; color: white; border-radius: 6px; font-weight: 600; cursor: pointer;">Simpan Recount</button>
-            </div>
-        </form>
+                <div class="modal-footer bg-light">
+                    <button type="button" onclick="closeRecountModal()" class="btn btn-secondary">Batal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Simpan Recount
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -189,10 +197,30 @@
 
 @push('styles')
 <style>
+    .bg-purple {
+        background-color: #8b5cf6 !important;
+        color: #fff !important;
+    }
+    .table-striped > tbody > tr:nth-of-type(odd) > * {
+        --bs-table-accent-bg: #f8fafc;
+    }
+    .table-hover > tbody > tr:hover > * {
+        --bs-table-hover-bg: #f1f5f9;
+    }
     .pagination-wrapper svg { width: 1.25rem; height: 1.25rem; }
     .pagination-wrapper nav > div { margin-top: 10px; }
     .pagination-wrapper p { font-size: 0.875rem; color: #64748b; }
+    .font-monospace {
+        font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    }
+    .modal-content {
+        border: none;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
 </style>
+@endpush
+
+@push('scripts')
 <script>
     function openRecountModal(resultId, level, binCode, skuCode) {
         document.getElementById('modalResultId').value = resultId;
@@ -200,18 +228,26 @@
         document.getElementById('modalLevelText').innerText = level;
         document.getElementById('modalProductInfo').innerText = binCode + ' - ' + skuCode;
         
-        const modal = document.getElementById('recountModal');
-        modal.style.display = 'flex';
+        const modal = new bootstrap.Modal(document.getElementById('recountModal'));
+        modal.show();
     }
 
     function closeRecountModal() {
-        document.getElementById('recountModal').style.display = 'none';
+        const modal = bootstrap.Modal.getInstance(document.getElementById('recountModal'));
+        if (modal) modal.hide();
     }
 
     document.getElementById('selectAllRecount').addEventListener('change', function() {
         let checkboxes = document.querySelectorAll('.recount-checkbox:not([disabled])');
         for (let checkbox of checkboxes) {
             checkbox.checked = this.checked;
+        }
+    });
+
+    // Close modal on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeRecountModal();
         }
     });
 </script>
