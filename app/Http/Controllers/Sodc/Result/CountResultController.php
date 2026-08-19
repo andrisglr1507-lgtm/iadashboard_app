@@ -211,6 +211,69 @@ class CountResultController extends Controller
                 ]
             );
         }
+
+        // --- AUTO DISPATCH RECOUNT LOGIC ---
+        $teamRecount = \App\Models\OpnameUserArea::where('session_id', $sessionId)
+            ->where('team_role', 'TEAM_RECOUNT')
+            ->pluck('user_id')
+            ->toArray();
+
+        if (!empty($teamRecount)) {
+            // Ambil semua hasil rekonsiliasi yang butuh RECOUNT
+            $recountItems = OpnameResult::with('referenceDetail')
+                ->where('session_id', $sessionId)
+                ->where('result_status', 'RECOUNT')
+                ->get();
+                
+            // Ambil assignment yang sudah ada agar tidak duplikat
+            $existingAssignments = \App\Models\OpnameRecountAssignment::where('session_id', $sessionId)->get();
+
+            $insertData = [];
+            $now = now();
+
+            foreach ($recountItems as $res) {
+                $ref = $res->referenceDetail;
+                if (!$ref) continue;
+                
+                // Tentukan level Recount
+                $round = 1;
+                if ($res->recount1_qty !== null && $res->recount2_qty === null) {
+                    $round = 2;
+                } elseif ($res->recount1_qty !== null && $res->recount2_qty !== null) {
+                    continue; // Skip, tidak butuh dispatch lagi
+                }
+
+                // Cek apakah tugas ini sudah pernah di-dispatch (untuk round ini)
+                $alreadyAssigned = $existingAssignments
+                    ->where('location_code', $ref->bin_code)
+                    ->where('id_product', $ref->sku_code)
+                    ->where('round_number', $round)
+                    ->isNotEmpty();
+
+                if (!$alreadyAssigned) {
+                    foreach ($teamRecount as $userId) {
+                        $insertData[] = [
+                            'session_id' => $sessionId,
+                            'location_code' => $ref->bin_code,
+                            'id_product' => $ref->sku_code,
+                            'round_number' => $round,
+                            'assigned_to' => $userId,
+                            'assigned_by' => auth()->id() ?? 1, // Sistem otomatis
+                            'status' => 'PENDING',
+                            'assigned_at' => $now,
+                            'is_final' => false
+                        ];
+                    }
+                }
+            }
+
+            // Lakukan Insert massal jika ada tugas baru
+            if (!empty($insertData)) {
+                foreach (array_chunk($insertData, 500) as $chunk) {
+                    \App\Models\OpnameRecountAssignment::insert($chunk);
+                }
+            }
+        }
     }
 
     public function inputRecount(Request $request)
@@ -237,70 +300,5 @@ class CountResultController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Hasil Recount berhasil diinput!');
-    }
-
-    public function bulkDispatch(Request $request)
-    {
-        $request->validate([
-            'result_ids' => 'required|array',
-            'result_ids.*' => 'exists:opname_results,id'
-        ]);
-
-        $activeSessionId = session('active_opname_session_id');
-        if (!$activeSessionId) {
-            return redirect()->back()->with('error', 'Sesi aktif tidak ditemukan.');
-        }
-
-        // Cek apakah Tim Recount Global sudah diset
-        $teamRecount = \App\Models\OpnameUserArea::where('session_id', $activeSessionId)
-            ->where('team_role', 'TEAM_RECOUNT')
-            ->pluck('user_id')
-            ->toArray();
-
-        if (empty($teamRecount)) {
-            return redirect()->back()->with('error', 'Tim Recount Global belum diset! Silakan ke halaman Assignments terlebih dahulu.');
-        }
-
-        $results = OpnameResult::with('referenceDetail')->whereIn('id', $request->result_ids)->get();
-        $dispatchedCount = 0;
-
-        foreach ($results as $result) {
-            // Tentukan Round Number
-            $roundNumber = 1;
-            if ($result->recount1_qty !== null && $result->recount2_qty === null) {
-                $roundNumber = 2;
-            } elseif ($result->recount1_qty !== null && $result->recount2_qty !== null) {
-                // Sudah beres R1 dan R2, abaikan
-                continue;
-            }
-
-            $ref = $result->referenceDetail;
-            if (!$ref) continue;
-
-            // Hapus assignment recount sebelumnya yang mungkin nyangkut di round ini (agar tidak dobel jika klik 2x)
-            \App\Models\OpnameRecountAssignment::where('session_id', $activeSessionId)
-                ->where('location_code', $ref->bin_code)
-                ->where('id_product', $ref->sku_code)
-                ->where('round_number', $roundNumber)
-                ->delete();
-
-            // Buat assignment baru untuk masing-masing user di Tim Recount (Keroyokan)
-            foreach ($teamRecount as $userId) {
-                \App\Models\OpnameRecountAssignment::insert([
-                    'session_id' => $activeSessionId,
-                    'location_code' => $ref->bin_code,
-                    'id_product' => $ref->sku_code,
-                    'round_number' => $roundNumber,
-                    'assigned_to' => $userId,
-                    'assigned_by' => auth()->id() ?? 1,
-                    'status' => 'PENDING',
-                    'assigned_at' => now(),
-                    'is_final' => false
-                ]);
-            }
-            $dispatchedCount++;
-        }
-
-        return redirect()->back()->with('success', $dispatchedCount . ' tugas Recount berhasil didelegasikan ke anggota Tim Recount!');
     }
 }

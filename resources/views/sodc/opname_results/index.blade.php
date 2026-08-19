@@ -45,25 +45,10 @@
             </form>
         </div>
 
-        <form id="bulkRecountForm" method="POST" action="{{ route('sodc.results.bulk_dispatch') }}">
-            @csrf
-            
-            <div style="padding: 12px 16px; background: #fffbeb; border-bottom: 1px solid #fde68a; display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-size: 0.85rem; color: #b45309;">
-                    <i class="fas fa-info-circle me-1"></i> Centang hasil yang butuh hitung ulang (Recount), lalu klik tombol di sebelah kanan untuk mengirim tugas ke Tim Recount.
-                </div>
-                <button type="submit" class="btn btn-sm btn-warning" style="font-weight: 600; font-size: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onclick="return confirm('Yakin ingin mengirim tugas recount ke semua anggota Tim Recount Global?')">
-                    <i class="fas fa-paper-plane me-1"></i> Kirim ke Tim Recount
-                </button>
-            </div>
-
         <div style="overflow-x: auto;">
             <table class="premium-table" style="width: 100%; border-collapse: collapse; min-width: 1000px;">
                 <thead>
                     <tr style="background: #f1f5f9; text-align: left; font-size: 0.8rem; color: #475569;">
-                        <th style="padding: 12px 16px; width: 40px; text-align: center;">
-                            <input type="checkbox" id="selectAllRecount" style="cursor: pointer;">
-                        </th>
                         <th style="padding: 12px 16px;">Bin / SKU</th>
                         <th style="padding: 12px 16px; text-align: right;">WMS Qty</th>
                         <th style="padding: 12px 16px; text-align: right;">Team A</th>
@@ -95,10 +80,6 @@
                             $isNyasar = (float)$res->system_qty == 0;
                         @endphp
                         <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; {{ $isNyasar ? 'background-color: #fef9c3;' : '' }}">
-                            <td style="padding: 12px 16px; text-align: center;">
-                                <input type="checkbox" name="result_ids[]" value="{{ $res->id }}" class="recount-checkbox" 
-                                    {{ ($isR1 || $isR2) ? '' : 'disabled' }} style="cursor: pointer;">
-                            </td>
                             <td style="padding: 12px 16px;">
                                 <div style="font-weight: 700; color: #0ea5e9;">{{ $res->referenceDetail->bin_code ?? '-' }}</div>
                                 <div style="font-family: monospace; font-weight: 600;">
@@ -147,7 +128,6 @@
                 </tbody>
             </table>
         </div>
-        </form>
         <div style="padding: 16px; border-top: 1px solid #e2e8f0; background: #f8fafc;" class="pagination-wrapper">
             {{ $results->links() }}
         </div>
@@ -207,12 +187,5 @@
     function closeRecountModal() {
         document.getElementById('recountModal').style.display = 'none';
     }
-
-    document.getElementById('selectAllRecount').addEventListener('change', function() {
-        let checkboxes = document.querySelectorAll('.recount-checkbox:not([disabled])');
-        for (let checkbox of checkboxes) {
-            checkbox.checked = this.checked;
-        }
-    });
 </script>
 @endpush

@@ -15,13 +15,18 @@
     @stack('styles')
 </head>
 <body>
-    <div class="app-container">
-        @include('partials.sidebar')
+    <div class="app-layout" style="display: flex; flex-direction: column; height: 100vh; overflow: hidden;">
+        @include('partials.header')
         
-        <main class="main-content">
-            @include('partials.header')
-            @yield('content')
-        </main>
+        <div style="display: flex; flex: 1; overflow: hidden;">
+            @include('partials.sidebar')
+            
+            <main class="main-content">
+                <div class="content-wrapper">
+                    @yield('content')
+                </div>
+            </main>
+        </div>
     </div>
 
     @vite(['resources/js/app.js'])

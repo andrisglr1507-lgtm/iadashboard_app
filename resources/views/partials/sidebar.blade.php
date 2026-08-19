@@ -1,11 +1,4 @@
 <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-        <i class="fas fa-chalkboard-user brand-icon"></i>
-        <span class="brand-name">{{ config('app.name', 'Laravel') }}</span>
-        <button class="toggle-btn" id="toggleSidebarBtn">
-            <i class="fas fa-chevron-left" id="toggleIcon"></i>
-        </button>
-    </div>
 
     <div class="sidebar-menu">
         <ul class="menu-list" id="menuList">

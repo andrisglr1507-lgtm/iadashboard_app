@@ -111,7 +111,6 @@ Route::prefix('sodc')->name('sodc.')->group(function () {
     Route::get('/sync_logs', function() { return 'Sync Logs'; })->name('sync_logs.index');
     Route::get('/results', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'index'])->name('results.index');
     Route::post('/results/recount', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'inputRecount'])->name('results.input_recount');
-    Route::post('/results/bulk-dispatch', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'bulkDispatch'])->name('results.bulk_dispatch');
     Route::get('/approvals', function() { return 'Approvals'; })->name('approvals.index');
 });
 });

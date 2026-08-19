@@ -78,19 +78,43 @@ class CountController extends Controller
         $bin = Bin::where('bin_code', $binCode)->first();
 
         // 🔹 CEK KONFLIK (OFFLINE-FIRST CONFLICT RESOLUTION)
-        // Cek apakah Bin ini sudah pernah dihitung oleh anggota tim lain
-        $hasConflict = OpnameCount::join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
-            ->where('opname_counts.session_id', $session->id)
-            ->where('opname_counts.team_id', $teamId)
-            ->where('opname_reference_details.bin_code', $binCode)
-            ->where('opname_counts.counted_by', '!=', $user->id)
-            ->exists();
+        // Cek apakah Bin ini sudah pernah dihitung oleh anggota tim lain (untuk mode reguler)
+        if ($teamId !== 'RECOUNT') {
+            $hasConflict = OpnameCount::join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
+                ->where('opname_counts.session_id', $session->id)
+                ->where('opname_counts.team_id', $teamId)
+                ->where('opname_reference_details.bin_code', $binCode)
+                ->where('opname_counts.counted_by', '!=', $user->id)
+                ->exists();
 
-        if ($hasConflict) {
-            return response()->json([
-                'success' => false,
-                'message' => "Bin $binCode sudah diselesaikan oleh rekan tim Anda."
-            ], 409); // HTTP 409 Conflict
+            if ($hasConflict) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Bin $binCode sudah diselesaikan oleh rekan tim Anda."
+                ], 409); // HTTP 409 Conflict
+            }
+        }
+
+        $idProduct = $request->id_product;
+
+        // 🔹 SABUK PENGAMAN KHUSUS RECOUNT
+        // Pastikan tugas recount-nya masih ada (belum keduluan dihapus oleh submit teman lain)
+        $currentRecountAssignment = null;
+        if ($teamId === 'RECOUNT') {
+            $currentRecountAssignment = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                ->where('session_id', $session->id)
+                ->where('location_code', $binCode)
+                ->where('id_product', $idProduct)
+                ->where('assigned_to', $user->id)
+                ->first();
+
+            if (!$currentRecountAssignment) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'CONFLICT_ALREADY_DONE',
+                    'message' => 'Maaf, tugas untuk Bin/SKU ini baru saja diselesaikan oleh petugas lain!'
+                ], 409);
+            }
         }
 
         $refDetailId = $request->reference_detail_id ?? null;
@@ -215,6 +239,27 @@ class CountController extends Controller
                     
                     // Juga update status ke RECOUNT_SUBMITTED agar bisa direkonsiliasi ulang nanti oleh web
                     $resultRow->update(['result_status' => 'RECOUNT']);
+                }
+
+                // 🔹 LOGIKA PEMBERSIHAN TUGAS RECOUNT (OPSI 1)
+                if ($currentRecountAssignment) {
+                    // 1. Resmikan hitungan milik user ini
+                    \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                        ->where('assignment_id', $currentRecountAssignment->assignment_id)
+                        ->update([
+                            'status' => 'COMPLETED',
+                            'submitted_at' => now(),
+                            'is_final' => true
+                        ]);
+
+                    // 2. Hapus sisa tugas untuk orang lain di round yang sama
+                    \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                        ->where('session_id', $session->id)
+                        ->where('location_code', $binCode)
+                        ->where('id_product', $idProduct)
+                        ->where('round_number', $currentRecountAssignment->round_number)
+                        ->where('assigned_to', '!=', $user->id)
+                        ->delete();
                 }
             }
         }

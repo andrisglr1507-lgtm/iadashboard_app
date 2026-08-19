@@ -3,8 +3,8 @@
 @section('page_title', 'Master Branch')
 
 @section('page_actions')
-<a href="{{ route('sodc.branches.create') }}" style="display: inline-flex; align-items: center; gap: 8px; background: #0ea5e9; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none;">
-    <i class="fas fa-plus"></i> Tambah Branch
+<a href="{{ route('sodc.branches.create') }}" style="display: inline-flex; align-items: center; gap: 8px; background: var(--phoenix-primary); color: white; border: none; padding: 8px 16px; border-radius: var(--phoenix-btn-radius); font-size: 0.875rem; font-weight: 700; cursor: pointer; text-decoration: none; box-shadow: 0 .125rem .25rem rgba(56, 116, 255, .15); transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='var(--phoenix-primary-hover)'" onmouseout="this.style.backgroundColor='var(--phoenix-primary)'">
+    <i class="fas fa-plus" style="font-size: 0.875rem;"></i> Tambah Branch
 </a>
 @endsection
 
@@ -15,30 +15,39 @@
     </div>
 @endif
 
-<div style="margin-top: 20px; padding: 24px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(226,232,240,0.8);">
-    <table class="premium-table" style="width: 100%; text-align: left; border-collapse: collapse;">
-        <thead>
-            <tr>
-                <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Kode Cabang</th>
-                <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Nama Cabang</th>
-                <th>Aksi</th>
-            </tr>
-        </thead>
+<div class="content-panel">
+    <div class="table-container">
+        <table class="premium-table">
+            <thead>
+                <tr>
+                    <th style="width: 20%;">Kode Cabang</th>
+                    <th style="width: 60%;">Nama Cabang</th>
+                    <th style="width: 20%; text-align: center;">Aksi</th>
+                </tr>
+            </thead>
         <tbody>
             @foreach($data as $row)
             <tr>
-                <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>{{ $row->branch_code }}</td>
-                <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>{{ $row->branch_name }}</td>
-                <td>
-                    <a href="{{ route('sodc.branches.edit', $row->id) }}" style="color: #0284c7; margin-right: 10px;"><i class="fas fa-edit"></i> Edit</a>
-                    <form action="{{ route('sodc.branches.destroy', $row->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Hapus data?');">
-                        @csrf @method('DELETE')
-                        <button type="submit" style="background:none; border:none; color: #ef4444; cursor:pointer;"><i class="fas fa-trash"></i> Hapus</button>
-                    </form>
+                <td style="font-weight: 700; color: var(--phoenix-primary);">{{ $row->branch_code }}</td>
+                <td style="font-weight: 600;">{{ $row->branch_name }}</td>
+                <td style="text-align: center;">
+                    <div style="display: inline-flex; gap: 8px;">
+                        <a href="{{ route('sodc.branches.edit', $row->branch_id) }}" style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: var(--phoenix-btn-radius); background: var(--phoenix-light); color: var(--phoenix-text-muted); text-decoration: none; transition: all 0.2s;" onmouseover="this.style.color='var(--phoenix-primary)'; this.style.background='rgba(56, 116, 255, 0.1)';" onmouseout="this.style.color='var(--phoenix-text-muted)'; this.style.background='var(--phoenix-light)';">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form action="{{ route('sodc.branches.destroy', $row->branch_id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: var(--phoenix-btn-radius); background: var(--phoenix-light); color: var(--phoenix-text-muted); border: none; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.color='var(--phoenix-danger)'; this.style.background='rgba(230, 55, 87, 0.1)';" onmouseout="this.style.color='var(--phoenix-text-muted)'; this.style.background='var(--phoenix-light)';">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             @endforeach
         </tbody>
     </table>
+    </div>
 </div>
 @endsection
