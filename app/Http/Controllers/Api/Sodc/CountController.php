@@ -67,6 +67,8 @@ class CountController extends Controller
                     ->where('session_id', $session->id)
                     ->where('assigned_to', $user->id)
                     ->where('location_code', $bin->bin_code)
+                    ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS'])
+                    ->orderBy('round_number', 'desc')
                     ->first();
                 if ($recount) {
                     $teamId = 'RECOUNT';
@@ -106,6 +108,8 @@ class CountController extends Controller
                 ->where('location_code', $binCode)
                 ->where('id_product', $idProduct)
                 ->where('assigned_to', $user->id)
+                ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS'])
+                ->orderBy('round_number', 'desc')
                 ->first();
 
             if (!$currentRecountAssignment) {
