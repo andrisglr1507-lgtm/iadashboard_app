@@ -235,6 +235,14 @@ class TaskController extends Controller
             ->get();
 
         $user = $request->user();
+        $myAreas = \Illuminate\Support\Facades\DB::table('opname_user_areas')
+            ->join('opname_teams', 'opname_user_areas.team_id', '=', 'opname_teams.id')
+            ->where('opname_user_areas.user_id', $user->id)
+            ->where('opname_user_areas.session_id', $activeSession->id)
+            ->select('opname_user_areas.*', 'opname_teams.team_code', 'opname_teams.team_type as team_role')
+            ->get();
+        $myGlobalTeamRole = $myAreas->isNotEmpty() ? $myAreas->first()->team_role : 'UNASSIGNED';
+
         $myRecountsRaw = DB::table('opname_recount_assignments')
             ->where('session_id', $activeSession->id)
             ->where('assigned_to', $user->id)
@@ -254,7 +262,7 @@ class TaskController extends Controller
             ->get()
             ->keyBy('reference_detail_id');
 
-        $expectedItems = $details->map(function ($detail) use ($allCounts, $myRecountsRaw, $allResults, $user) {
+        $expectedItems = $details->map(function ($detail) use ($allCounts, $myRecountsRaw, $allResults, $user, $myGlobalTeamRole) {
             $productId = $detail->product->id_product ?? $detail->sku_code;
             $taskType = 'NORMAL';
             $expectedSequence = 1;
@@ -269,12 +277,9 @@ class TaskController extends Controller
             $myCount = null;
             if ($taskType == 'NORMAL') {
                 $myCount = $allCounts->where('reference_detail_id', $detail->id)
-                                     ->where('counted_by', $user->id)
+                                     ->where('team_id', $myGlobalTeamRole)
                                      ->where('count_sequence', 1)
                                      ->first();
-                if (!$myCount) {
-                    $myCount = $allCounts->where('reference_detail_id', $detail->id)->first();
-                }
             } else {
                 // Untuk Recount, hanya terhitung jika ada count dengan sequence yang diminta
                 $myCount = $allCounts->where('reference_detail_id', $detail->id)

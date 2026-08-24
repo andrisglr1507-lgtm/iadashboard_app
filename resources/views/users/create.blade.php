@@ -1,13 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'Add New User')
+@section('title', 'Tambah User')
+@section('page_title', 'Tambah User')
 
 @section('content')
-<div class="top-bar">
-    <h1 class="page-title">Add New User</h1>
-</div>
-
-<div class="content-panel" style="max-width: 600px; margin: 24px auto;">
+<div class="content-panel" style="padding: 24px; margin-top: 20px;">
+    
     @if ($errors->any())
         <div style="background: #fef2f2; border: 1px solid #ef4444; color: #b91c1c; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
             <ul style="margin: 0; padding-left: 20px;">
@@ -18,66 +16,65 @@
         </div>
     @endif
 
-    <form action="{{ route('users.store') }}" method="POST">
-        @csrf
-        
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem;">Employee Code <span style="color:red;">*</span></label>
-            <input type="text" name="employee_code" value="{{ old('employee_code') }}" required
-                   style="width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem;" placeholder="e.g. EMP-001">
+    <div style="display: flex; gap: 40px; flex-wrap: wrap;">
+        <!-- Kolom Kiri: Form -->
+        <div style="flex: 1; min-width: 300px;">
+            <form action="{{ route('users.store') }}" method="POST">
+                @csrf
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #334155;">Employee Code <span style="color:red;">*</span></label>
+                    <input type="text" name="employee_code" value="{{ old('employee_code') }}" required
+                           style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'" placeholder="e.g. EMP-001">
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #334155;">Full Name <span style="color:red;">*</span></label>
+                    <input type="text" name="full_name" value="{{ old('full_name') }}" required
+                           style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'" placeholder="e.g. John Doe">
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #334155;">Username <span style="color:red;">*</span></label>
+                    <input type="text" name="username" value="{{ old('username') }}" required
+                           style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'" placeholder="e.g. johndoe">
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #334155;">Role <span style="color:red;">*</span></label>
+                    <select name="role" required style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s; background: white;" onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'">
+                        <option value="SUPER_ADMIN" {{ old('role') == 'SUPER_ADMIN' ? 'selected' : '' }}>SUPER_ADMIN</option>
+                        <option value="ADMIN" {{ old('role') == 'ADMIN' ? 'selected' : '' }}>ADMIN</option>
+                        <option value="HEAD_OPNAME" {{ old('role') == 'HEAD_OPNAME' ? 'selected' : '' }}>HEAD_OPNAME</option>
+                        <option value="AUDITOR" {{ old('role') == 'AUDITOR' ? 'selected' : '' }}>AUDITOR</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #334155;">Password <span style="color:red;">*</span></label>
+                    <input type="password" name="password" required minlength="6"
+                           style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'" placeholder="Min. 6 characters">
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; gap: 8px; color: #334155;">
+                        <input type="checkbox" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }} style="width: 20px; height: 20px; cursor: pointer;">
+                        <span style="font-weight: 600;">Status Aktif</span>
+                    </label>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    <button type="submit" class="btn btn-primary" style="padding: 12px 24px; width: 100%; justify-content: center;">
+                        <i class="fas fa-save"></i> Simpan Data User
+                    </button>
+                </div>
+            </form>
         </div>
 
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem;">Full Name <span style="color:red;">*</span></label>
-            <input type="text" name="full_name" value="{{ old('full_name') }}" required
-                   style="width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem;" placeholder="e.g. John Doe">
+        <!-- Kolom Kanan: Ilustrasi -->
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center; min-width: 200px; background: #f8fafc; border-radius: 16px; border: 1px dashed #cbd5e1;">
+            <img src="{{ asset('images/user.png') }}" alt="User Illustration" style="max-width: 50%; height: auto; border-radius: 12px;">
         </div>
-
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem;">Username <span style="color:red;">*</span></label>
-            <input type="text" name="username" value="{{ old('username') }}" required
-                   style="width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem;" placeholder="e.g. johndoe">
-        </div>
-
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem;">Role <span style="color:red;">*</span></label>
-            <select name="role" required style="width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; background: white;">
-                <option value="SUPER_ADMIN" {{ old('role') == 'SUPER_ADMIN' ? 'selected' : '' }}>SUPER_ADMIN</option>
-                <option value="ADMIN" {{ old('role') == 'ADMIN' ? 'selected' : '' }}>ADMIN</option>
-                <option value="HEAD_OPNAME" {{ old('role') == 'HEAD_OPNAME' ? 'selected' : '' }}>HEAD_OPNAME</option>
-                <option value="AUDITOR" {{ old('role') == 'AUDITOR' ? 'selected' : '' }}>AUDITOR</option>
-            </select>
-        </div>
-
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem;">Password <span style="color:red;">*</span></label>
-            <input type="password" name="password" required minlength="6"
-                   style="width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem;" placeholder="Min. 6 characters">
-        </div>
-
-        <div style="margin-bottom: 24px;">
-            <label style="display: flex; align-items: center; cursor: pointer; gap: 8px;">
-                <input type="checkbox" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }} style="width: 18px; height: 18px;">
-                <span style="font-weight: 600; font-size: 0.9rem;">Active Status</span>
-            </label>
-        </div>
-
-        <div style="display: flex; justify-content: flex-end; gap: 12px;">
-            <a href="{{ route('users.index') }}" class="btn-secondary" style="padding: 10px 20px; font-size: 0.9rem; text-decoration: none; color: #64748b; border: 1px solid #e2e8f0; border-radius: 8px; font-weight: 600;">Cancel</a>
-            <button type="submit" class="btn-primary" style="padding: 10px 20px; font-size: 0.9rem;">Create User</button>
-        </div>
-    </form>
+    </div>
 </div>
 @endsection
-
-@push('styles')
-<style>
-    .content-panel {
-        background: white;
-        border-radius: 24px;
-        padding: 32px;
-        border: 1px solid #eef2f8;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-</style>
-@endpush

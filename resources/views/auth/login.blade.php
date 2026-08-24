@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Classic Dashboard</title>
+    <title>Login - CSA Dashboard</title>
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
@@ -177,7 +177,7 @@
                 <div class="login-brand">
                     <i class="fas fa-box-open"></i>
                 </div>
-                <h1>Classic Dashboard</h1>
+                <h1>CSA Dashboard</h1>
                 <p>Silakan masuk ke akun operasional Anda</p>
             </div>
 
@@ -217,7 +217,7 @@
         </div>
 
         <div class="footer-text">
-            &copy; {{ date('Y') }} Classic Dashboard. All rights reserved.
+            &copy; {{ date('Y') }} CSA Dashboard. All rights reserved.
         </div>
     </div>
 

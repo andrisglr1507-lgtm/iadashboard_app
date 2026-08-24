@@ -2,9 +2,9 @@
     
     <div style="display: flex; align-items: center;">
         <!-- Brand Logo -->
-        <div style="display: flex; align-items: center; gap: 12px; width: 230px;">
-            <i class="fas fa-chalkboard-user" style="font-size: 24px; color: var(--phoenix-primary);"></i>
-            <span style="font-weight: 800; font-size: 1.25rem; color: var(--phoenix-dark); letter-spacing: -0.5px;">{{ config('app.name', 'Laravel') }}</span>
+        <div id="headerBrandContainer" style="display: flex; align-items: center; gap: 12px; width: 230px; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; white-space: nowrap;">
+            <i class="fas fa-chalkboard-user" style="font-size: 24px; color: var(--phoenix-primary); flex-shrink: 0; margin-left: 4px;"></i>
+            <span id="headerBrandText" style="font-weight: 800; font-size: 1.25rem; color: var(--phoenix-dark); letter-spacing: -0.5px; transition: opacity 0.2s;">Dashboard</span>
         </div>
         
         <!-- Toggle Btn -->

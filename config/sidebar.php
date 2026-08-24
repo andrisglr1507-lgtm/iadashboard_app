@@ -29,7 +29,7 @@ return [
                 'route' => 'sodc.bins.index', // placeholder route
             ],
             [
-                'title' => 'Products (SKU)',
+                'title' => 'Products',
                 'icon' => 'fas fa-boxes',
                 'route' => 'sodc.products.index', // placeholder route
             ],
@@ -52,7 +52,7 @@ return [
         'icon' => 'fas fa-clipboard-list',
         'submenu' => [
             [
-                'title' => 'WMS References (Snapshots)',
+                'title' => 'WMS References',
                 'icon' => 'fas fa-file-download',
                 'route' => 'sodc.references.index',
             ],

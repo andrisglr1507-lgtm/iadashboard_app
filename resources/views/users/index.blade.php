@@ -1,66 +1,71 @@
 @extends('layouts.app')
 
 @section('title', 'List Users')
+@section('page_title', 'Master User')
 
 @section('content')
-<div class="top-bar">
-    <h1 class="page-title">List Users</h1>
-</div>
+@if(session('success'))
+    <div style="margin-bottom: 20px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 12px; border-radius: 8px;">
+        <i class="fas fa-check-circle"></i> {{ session('success') }}
+    </div>
+@endif
 
-<div class="content-panel">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h2 style="font-size: 1.1rem; font-weight: 600; color: var(--dark);">User Management</h2>
-        <a href="{{ route('users.create') }}" class="btn-primary" style="padding: 10px 20px; font-size: 0.85rem;">
-            <i class="fas fa-plus"></i> Add New User
-        </a>
+<div class="content-panel" style="margin-top: 20px;">
+    <div class="panel-header">
+        <h3 class="panel-title">Daftar User</h3>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <a href="{{ route('users.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Tambah User
+            </a>
+        </div>
     </div>
 
-    <div class="table-responsive">
-        <table class="data-table">
+    <div class="table-container">
+        <table class="premium-table">
             <thead>
                 <tr>
-                    <th>Emp. Code</th>
-                    <th>Full Name</th>
-                    <th>Username</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th style="text-align: right;">Actions</th>
+                    <th style="border-bottom: 1px solid #e2e8f0;">Emp. Code</th>
+                    <th style="border-bottom: 1px solid #e2e8f0;">Full Name</th>
+                    <th style="border-bottom: 1px solid #e2e8f0;">Username</th>
+                    <th style="border-bottom: 1px solid #e2e8f0;">Role</th>
+                    <th style="border-bottom: 1px solid #e2e8f0;">Status</th>
+                    <th style="border-bottom: 1px solid #e2e8f0;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($users as $user)
                 <tr>
-                    <td style="font-weight: 600; color: var(--primary);">{{ $user->employee_code }}</td>
-                    <td>{{ $user->full_name }}</td>
-                    <td>{{ $user->username }}</td>
-                    <td>
-                        <span style="background: var(--bg); padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color: var(--dark);">
+                    <td style="font-weight: 600; color: #0369a1; border-bottom: 1px solid #f1f5f9;">{{ $user->employee_code }}</td>
+                    <td style="border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #334155;">{{ $user->full_name }}</td>
+                    <td style="border-bottom: 1px solid #f1f5f9;">{{ $user->username }}</td>
+                    <td style="border-bottom: 1px solid #f1f5f9;">
+                        <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; border: 1px solid #e2e8f0;">
                             {{ $user->role }}
                         </span>
                     </td>
-                    <td>
+                    <td style="border-bottom: 1px solid #f1f5f9;">
                         @if($user->is_active)
-                            <span style="background: #ecfdf5; color: #10b981; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Active</span>
+                            <span style="background: #ecfdf5; color: #10b981; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Active</span>
                         @else
-                            <span style="background: #fef2f2; color: #ef4444; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Inactive</span>
+                            <span style="background: #fef2f2; color: #ef4444; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Inactive</span>
                         @endif
                     </td>
-                    <td style="text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
-                        <a href="{{ route('users.edit', $user->id) }}" class="action-btn" title="Edit User">
-                            <i class="fas fa-edit"></i>
+                    <td style="border-bottom: 1px solid #f1f5f9;">
+                        <a href="{{ route('users.edit', $user->id) }}" style="color: #0284c7; margin-right: 10px; text-decoration: none;" title="Edit User">
+                            <i class="fas fa-edit"></i> Edit
                         </a>
                         <form action="{{ route('users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this user?');" style="display:inline;">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="action-btn" style="color: #ef4444;" title="Delete User">
-                                <i class="fas fa-trash"></i>
+                            <button type="submit" style="background:none; border:none; color: #ef4444; cursor:pointer; font-size: inherit;" title="Delete User">
+                                <i class="fas fa-trash"></i> Hapus
                             </button>
                         </form>
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" style="padding: 30px; text-align: center; color: var(--text-secondary);">
+                    <td colspan="6" style="padding: 30px; text-align: center; color: #94a3b8;">
                         <i class="fas fa-users" style="font-size: 2rem; color: #cbd5e1; margin-bottom: 12px; display: block;"></i>
                         No users found in the system.
                     </td>
@@ -70,17 +75,4 @@
         </table>
     </div>
 </div>
-
 @endsection
-
-@push('styles')
-<style>
-    .content-panel {
-        background: white;
-        border-radius: 24px;
-        padding: 24px;
-        margin-top: 28px;
-        border: 1px solid #eef2f8;
-    }
-</style>
-@endpush
