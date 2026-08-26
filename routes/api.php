@@ -11,12 +11,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    
-    
-});
-
-});
-Route::get('/master/bins', function () { return response()->json(['data' => \App\Models\Bin::all()]); });
+    Route::get('/master/bins', function () { return response()->json(['data' => \App\Models\Bin::all()]); });
 
     // Master Sync routes
     Route::get('/master/products', function (\Illuminate\Http\Request $request) {
@@ -33,6 +28,7 @@ Route::get('/master/bins', function () { return response()->json(['data' => \App
     });
 
     Route::post('/sodc/bad-stock', [\App\Http\Controllers\Api\Sodc\BadStockController::class, 'store'])->name('api.sodc.bad_stock.store');
+    
     // Opname Scanner routes
     Route::get('/sodc/my-tasks', [\App\Http\Controllers\Api\Sodc\TaskController::class, 'allBins']); // Backward compatibility for Flutter
     Route::get('/sodc/sessions/active', [\App\Http\Controllers\Api\Sodc\TaskController::class, 'activeSessions']);
