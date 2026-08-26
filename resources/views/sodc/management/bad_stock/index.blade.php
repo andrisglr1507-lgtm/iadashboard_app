@@ -19,6 +19,7 @@
                 <option value="">Semua Kategori</option>
                 <option value="BAD_STOCK" {{ request('category') == 'BAD_STOCK' ? 'selected' : '' }}>Bad Stock</option>
                 <option value="EXPIRED_STOCK" {{ request('category') == 'EXPIRED_STOCK' ? 'selected' : '' }}>Expired Stock</option>
+                <option value="GOOD_STOCK" {{ request('category') == 'GOOD_STOCK' ? 'selected' : '' }}>Good Stock</option>
             </select>
 
             <select name="item_status" onchange="this.form.submit()" style="padding: 8px 16px; border: 1px solid var(--phoenix-border-color); border-radius: var(--phoenix-border-radius); background-color: var(--phoenix-bg-main); color: var(--phoenix-dark); font-weight: 600; font-size: 0.85rem; outline: none;">
@@ -62,6 +63,8 @@
                     <td style="text-align: center;">
                         @if($row->category == 'EXPIRED_STOCK')
                             <span style="font-size: 0.7rem; background: rgba(245, 158, 11, 0.1); color: var(--phoenix-warning); padding: 4px 8px; border-radius: 6px; font-weight: 800;">EXPIRED</span>
+                        @elseif($row->category == 'GOOD_STOCK')
+                            <span style="font-size: 0.7rem; background: rgba(16, 185, 129, 0.1); color: var(--phoenix-success); padding: 4px 8px; border-radius: 6px; font-weight: 800;">GOOD STOCK</span>
                         @else
                             <span style="font-size: 0.7rem; background: rgba(230, 55, 87, 0.1); color: var(--phoenix-danger); padding: 4px 8px; border-radius: 6px; font-weight: 800;">BAD STOCK</span>
                         @endif

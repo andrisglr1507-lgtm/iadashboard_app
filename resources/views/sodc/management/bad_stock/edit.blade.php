@@ -50,6 +50,7 @@
                 <select name="category" style="width: 100%; padding: 10px; border: 1px solid var(--phoenix-border-color); border-radius: var(--phoenix-border-radius); font-family: inherit; font-size: 0.9rem;" required>
                     <option value="BAD_STOCK" {{ old('category', $record->category) == 'BAD_STOCK' ? 'selected' : '' }}>Bad Stock</option>
                     <option value="EXPIRED_STOCK" {{ old('category', $record->category) == 'EXPIRED_STOCK' ? 'selected' : '' }}>Expired Stock</option>
+                    <option value="GOOD_STOCK" {{ old('category', $record->category) == 'GOOD_STOCK' ? 'selected' : '' }}>Good Stock</option>
                 </select>
             </div>
 
