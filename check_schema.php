@@ -1,5 +1,13 @@
 <?php
-$pdo = new PDO('mysql:host=127.0.0.1;dbname=equuddbx_so_dc', 'root', '');
-$stmt1 = $pdo->query('SHOW COLUMNS FROM opname_sessions');
-echo "== opname_sessions ==\n";
-print_r($stmt1->fetchAll(PDO::FETCH_ASSOC));
+require __DIR__.'/vendor/autoload.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel->bootstrap();
+
+use Illuminate\Support\Facades\DB;
+
+$columns = DB::select("SHOW COLUMNS FROM bad_stock_records WHERE Field = 'category'");
+print_r($columns);
+
+$latest = DB::table('bad_stock_records')->orderBy('id', 'desc')->limit(5)->get();
+print_r($latest);
