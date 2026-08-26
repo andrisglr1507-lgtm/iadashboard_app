@@ -62,10 +62,15 @@ return [
                 'route' => 'sodc.sessions.index',
             ],
             [
-                'title' => 'Team Assignments',
+                'title' => 'Assignments',
                 'icon' => 'fas fa-tasks',
                 'route' => 'sodc.assignments.index',
             ],
+            [
+                'title' => 'Rekap Bad Stock',
+                'icon' => 'fas fa-dumpster',
+                'route' => 'sodc.bad_stock.index',
+            ]
         ],
     ],
 

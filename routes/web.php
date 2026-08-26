@@ -108,9 +108,14 @@ Route::prefix('sodc')->name('sodc.')->group(function () {
     Route::resource('assignments', \App\Http\Controllers\Sodc\Management\AssignmentController::class);
     
     // Opname Results (Placeholder)
-    Route::get('/sync_logs', function() { return 'Sync Logs'; })->name('sync_logs.index');
     Route::get('/results', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'index'])->name('results.index');
     Route::post('/results/recount', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'inputRecount'])->name('results.input_recount');
     Route::get('/approvals', function() { return 'Approvals'; })->name('approvals.index');
+    
+    // Bad Stock
+    Route::get('bad-stock', [\App\Http\Controllers\Sodc\Management\BadStockController::class, 'index'])->name('bad_stock.index');
+    Route::get('bad-stock/{id}/edit', [\App\Http\Controllers\Sodc\Management\BadStockController::class, 'edit'])->name('bad_stock.edit');
+    Route::put('bad-stock/{id}', [\App\Http\Controllers\Sodc\Management\BadStockController::class, 'update'])->name('bad_stock.update');
+    Route::delete('bad-stock/{id}', [\App\Http\Controllers\Sodc\Management\BadStockController::class, 'destroy'])->name('bad_stock.destroy');
 });
 });
