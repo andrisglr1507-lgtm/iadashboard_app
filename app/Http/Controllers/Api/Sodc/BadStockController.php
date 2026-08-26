@@ -19,7 +19,7 @@ class BadStockController extends Controller
             'qty_pcs' => 'nullable|integer',
             'total_qty' => 'required|integer',
             'item_status' => 'required|in:SALEABLE,NON_SALEABLE',
-            'category' => 'required|in:BAD_STOCK,EXPIRED_STOCK',
+            'category' => 'required|in:BAD_STOCK,EXPIRED_STOCK,GOOD_STOCK',
             'batch_no' => 'nullable|string|max:100',
             'expired_date' => 'nullable|date',
             'recorded_by' => 'nullable|integer'
