@@ -115,6 +115,7 @@ Route::prefix('sodc')->name('sodc.')->group(function () {
     
     // Bad Stock
     Route::get('bad-stock', [\App\Http\Controllers\Sodc\Management\BadStockController::class, 'index'])->name('bad_stock.index');
+    Route::get('bad-stock/print', [\App\Http\Controllers\Sodc\Management\BadStockController::class, 'print'])->name('bad_stock.print');
     Route::get('bad-stock/{id}/edit', [\App\Http\Controllers\Sodc\Management\BadStockController::class, 'edit'])->name('bad_stock.edit');
     Route::put('bad-stock/{id}', [\App\Http\Controllers\Sodc\Management\BadStockController::class, 'update'])->name('bad_stock.update');
     Route::delete('bad-stock/{id}', [\App\Http\Controllers\Sodc\Management\BadStockController::class, 'destroy'])->name('bad_stock.destroy');

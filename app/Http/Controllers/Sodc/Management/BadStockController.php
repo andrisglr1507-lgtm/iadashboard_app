@@ -21,9 +21,34 @@ class BadStockController extends Controller
             $query->where('item_status', $request->item_status);
         }
 
-        $records = $query->orderBy('id', 'desc')->paginate(50);
+        if ($request->has('koli') && $request->koli != '') {
+            $query->where('koli', $request->koli);
+        }
+
+        $records = $query->orderBy('id', 'desc')->paginate(15)->withQueryString();
 
         return view('sodc.management.bad_stock.index', compact('records'));
+    }
+
+    public function print(Request $request)
+    {
+        $query = BadStockRecord::with(['product', 'user'])->orderBy('created_at', 'desc');
+
+        if ($request->has('category') && $request->category != '') {
+            $query->where('category', $request->category);
+        }
+
+        if ($request->has('item_status') && $request->item_status != '') {
+            $query->where('item_status', $request->item_status);
+        }
+
+        if ($request->has('koli') && $request->koli != '') {
+            $query->where('koli', $request->koli);
+        }
+
+        $records = $query->get();
+
+        return view('sodc.management.bad_stock.print', compact('records'));
     }
 
     public function edit($id)

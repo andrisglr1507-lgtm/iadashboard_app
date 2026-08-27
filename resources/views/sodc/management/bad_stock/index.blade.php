@@ -14,7 +14,7 @@
         <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--phoenix-dark);">Daftar Barang Rusak & Expired</h3>
         
         <!-- Filter Bar -->
-        <form action="{{ route('sodc.bad_stock.index') }}" method="GET" style="display: flex; gap: 12px; margin: 0;">
+        <form action="{{ route('sodc.bad_stock.index') }}" method="GET" style="display: flex; gap: 12px; margin: 0; align-items: center;" id="filter-form">
             <select name="category" onchange="this.form.submit()" style="padding: 8px 16px; border: 1px solid var(--phoenix-border-color); border-radius: var(--phoenix-border-radius); background-color: var(--phoenix-bg-main); color: var(--phoenix-dark); font-weight: 600; font-size: 0.85rem; outline: none;">
                 <option value="">Semua Kategori</option>
                 <option value="BAD_STOCK" {{ request('category') == 'BAD_STOCK' ? 'selected' : '' }}>Bad Stock</option>
@@ -27,8 +27,32 @@
                 <option value="SALEABLE" {{ request('item_status') == 'SALEABLE' ? 'selected' : '' }}>Saleable</option>
                 <option value="NON_SALEABLE" {{ request('item_status') == 'NON_SALEABLE' ? 'selected' : '' }}>Non-Saleable</option>
             </select>
+
+            <select name="koli" onchange="this.form.submit()" style="padding: 8px 16px; border: 1px solid var(--phoenix-border-color); border-radius: var(--phoenix-border-radius); background-color: var(--phoenix-bg-main); color: var(--phoenix-dark); font-weight: 600; font-size: 0.85rem; outline: none;">
+                <option value="">Semua Koli</option>
+                <option value="1" {{ request('koli') == '1' ? 'selected' : '' }}>Koli 1</option>
+                <option value="2" {{ request('koli') == '2' ? 'selected' : '' }}>Koli 2</option>
+                <option value="3" {{ request('koli') == '3' ? 'selected' : '' }}>Koli 3</option>
+                <option value="4" {{ request('koli') == '4' ? 'selected' : '' }}>Koli 4</option>
+                <option value="5" {{ request('koli') == '5' ? 'selected' : '' }}>Koli 5</option>
+            </select>
+
+            <button type="button" onclick="printPreview()" style="background: var(--phoenix-primary); color: white; border: none; padding: 8px 16px; border-radius: var(--phoenix-btn-radius); font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.2s;">
+                <i class="fas fa-print"></i> Print Preview
+            </button>
         </form>
     </div>
+
+    <script>
+        function printPreview() {
+            const form = document.getElementById('filter-form');
+            const category = form.category.value;
+            const item_status = form.item_status.value;
+            const koli = form.koli.value;
+            const url = `{{ route('sodc.bad_stock.print') }}?category=${category}&item_status=${item_status}&koli=${koli}`;
+            window.open(url, '_blank');
+        }
+    </script>
 
     <div class="table-container">
         <table class="premium-table">
