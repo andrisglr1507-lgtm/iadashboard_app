@@ -12,8 +12,17 @@ class BadStockController extends Controller
 {
     public function store(Request $request)
     {
+        $data = $request->all();
+        // Handle empty strings from Flutter
+        if (empty($data['expired_date']) || $data['expired_date'] === 'null' || $data['expired_date'] === '') {
+            $data['expired_date'] = null;
+        }
+        if (empty($data['batch_no']) || $data['batch_no'] === 'null' || $data['batch_no'] === '') {
+            $data['batch_no'] = null;
+        }
+
         // Validasi input dari Flutter
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make($data, [
             'sku_code' => 'required|string|max:50',
             'qty_carton' => 'nullable|integer',
             'qty_pcs' => 'nullable|integer',
@@ -43,9 +52,9 @@ class BadStockController extends Controller
                 'total_qty' => $request->total_qty,
                 'item_status' => $request->item_status,
                 'category' => $request->category,
-                'batch_no' => $request->batch_no,
-                'expired_date' => $request->expired_date,
-                'recorded_by' => $request->recorded_by ?? auth()->id(),
+                'batch_no' => $data['batch_no'],
+                'expired_date' => $data['expired_date'],
+                'recorded_by' => $data['recorded_by'] ?? auth()->id(),
             ]);
 
             DB::commit();
