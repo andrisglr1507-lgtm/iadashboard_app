@@ -41,6 +41,7 @@
                     <th style="text-align: right;">Qty Carton</th>
                     <th style="text-align: right;">Qty Pcs</th>
                     <th style="text-align: right;">Total Qty</th>
+                    <th style="text-align: center;">Koli</th>
                     <th style="text-align: center;">Kategori</th>
                     <th style="text-align: center;">Status</th>
                     <th>Batch No</th>
@@ -60,6 +61,7 @@
                     <td style="text-align: right; font-weight: 600;">{{ $row->qty_carton }}</td>
                     <td style="text-align: right; font-weight: 600;">{{ $row->qty_pcs }}</td>
                     <td style="text-align: right; font-weight: 800; color: var(--phoenix-dark);">{{ $row->total_qty }}</td>
+                    <td style="text-align: center; font-weight: 600; color: var(--phoenix-primary);">{{ $row->koli ?? '-' }}</td>
                     <td style="text-align: center;">
                         @if($row->category == 'EXPIRED_STOCK')
                             <span style="font-size: 0.7rem; background: rgba(245, 158, 11, 0.1); color: var(--phoenix-warning); padding: 4px 8px; border-radius: 6px; font-weight: 800;">EXPIRED</span>
@@ -99,7 +101,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="14" style="text-align: center; padding: 32px; color: var(--phoenix-text-muted);">
+                    <td colspan="15" style="text-align: center; padding: 32px; color: var(--phoenix-text-muted);">
                         Belum ada data barang rusak atau expired.
                     </td>
                 </tr>

@@ -38,6 +38,7 @@ class BadStockController extends Controller
             'qty_carton' => 'required|integer|min:0',
             'qty_pcs' => 'required|integer|min:0',
             'total_qty' => 'required|integer|min:0',
+            'koli' => 'nullable|integer',
             'item_status' => 'required|in:SALEABLE,NON_SALEABLE',
             'category' => 'required|in:BAD_STOCK,EXPIRED_STOCK',
             'batch_no' => 'nullable|string|max:100',
@@ -46,7 +47,7 @@ class BadStockController extends Controller
 
         $record = BadStockRecord::findOrFail($id);
         $record->update($request->only([
-            'qty_carton', 'qty_pcs', 'total_qty', 'item_status', 'category', 'batch_no', 'expired_date'
+            'qty_carton', 'qty_pcs', 'total_qty', 'koli', 'item_status', 'category', 'batch_no', 'expired_date'
         ]));
 
         return redirect()->route('sodc.bad_stock.index')->with('success', 'Data Bad Stock berhasil diperbarui!');

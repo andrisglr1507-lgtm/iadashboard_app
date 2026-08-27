@@ -18,7 +18,8 @@ class BadStockRecord extends Model
         'category',
         'batch_no',
         'expired_date',
-        'recorded_by'
+        'recorded_by',
+        'koli'
     ];
 
     public function product()

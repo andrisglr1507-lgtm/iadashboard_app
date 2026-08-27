@@ -41,6 +41,11 @@
                 <label style="display: block; font-weight: 600; font-size: 0.85rem; color: var(--phoenix-dark); margin-bottom: 8px;">Total Qty</label>
                 <input type="number" name="total_qty" value="{{ old('total_qty', $record->total_qty) }}" style="width: 100%; padding: 10px; border: 1px solid var(--phoenix-border-color); border-radius: var(--phoenix-border-radius); font-family: inherit; font-size: 0.9rem;" required>
             </div>
+
+            <div>
+                <label style="display: block; font-weight: 600; font-size: 0.85rem; color: var(--phoenix-dark); margin-bottom: 8px;">Koli (1-5)</label>
+                <input type="number" name="koli" min="1" max="5" value="{{ old('koli', $record->koli) }}" style="width: 100%; padding: 10px; border: 1px solid var(--phoenix-border-color); border-radius: var(--phoenix-border-radius); font-family: inherit; font-size: 0.9rem;">
+            </div>
             
         </div>
 
