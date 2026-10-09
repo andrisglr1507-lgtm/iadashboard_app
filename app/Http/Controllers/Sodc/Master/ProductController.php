@@ -124,4 +124,49 @@ class ProductController extends Controller
         Product::findOrFail($id)->delete();
         return redirect()->route('sodc.products.index')->with('success', 'Data berhasil dihapus');
     }
+
+    public function syncApi(\Illuminate\Http\Request $request)
+    {
+        $token = '75|tuN21XD303rLCfLQhRkAEXixfWHwwDoZIrXYzDdd';
+        
+        try {
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json'
+            ])->get('https://wms.edrs.co.id/api/mileapp/products');
+
+            if ($response->successful()) {
+                $json = $response->json();
+                $products = $json['data'] ?? [];
+                
+                $count = 0;
+                foreach ($products as $p) {
+                    $dataId = $p['dataId'] ?? null;
+                    if (!$dataId) continue;
+
+                    $uom = isset($p['uom']) && is_numeric($p['uom']) ? (int)$p['uom'] : 1;
+                    if ($uom == 0) $uom = 1;
+
+                    \App\Models\MasterProduct::updateOrCreate(
+                        ['sku_code' => $dataId],
+                        [
+                            'id_product' => $dataId, // Mengikuti dataId sebagai id_product juga
+                            'sku_name' => $p['productName'] ?? '',
+                            'barcode' => $p['itemBarcode'] ?: null,
+                            'packname' => $p['productCategoryCode'] ?: null,
+                            'uom' => $uom,
+                            'principal' => $p['principal'] ?: null,
+                        ]
+                    );
+                    $count++;
+                }
+
+                return redirect()->route('sodc.products.index')->with('success', "Berhasil sinkronisasi $count produk dari WMS API.");
+            } else {
+                return redirect()->route('sodc.products.index')->with('error', "Gagal sinkronisasi API WMS. Status: " . $response->status());
+            }
+        } catch (\Exception $e) {
+            return redirect()->route('sodc.products.index')->with('error', "Terjadi kesalahan sinkronisasi: " . $e->getMessage());
+        }
+    }
 }
