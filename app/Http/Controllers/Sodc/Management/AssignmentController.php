@@ -22,25 +22,23 @@ class AssignmentController extends Controller
         $assignmentsMap = [];
 
         if ($session) {
-            // Get unique warehouses and aisles for this session
+            // Get unique warehouses for this session
             $warehouses = DB::table('opname_reference_details')
                 ->leftJoin('bins', 'opname_reference_details.bin_code', '=', 'bins.bin_code')
+                ->leftJoin('warehouses', 'bins.warehouse_id', '=', 'warehouses.id')
                 ->where('opname_reference_details.reference_id', $session->reference_id)
                 ->select(
                     DB::raw('COALESCE(bins.warehouse_id, "UNKNOWN") as warehouse_id'), 
-                    DB::raw('COALESCE(bins.zone, "UNKNOWN") as zone'), 
-                    DB::raw('COALESCE(bins.level, "UNKNOWN") as level'), 
-                    DB::raw('COALESCE(bins.ganjil_genap, "UNKNOWN") as ganjil_genap'), 
-                    DB::raw('COALESCE(bins.aisle, "ALL") as aisle'),
+                    DB::raw('COALESCE(warehouses.warehouse_code, bins.warehouse_id, "UNKNOWN") as warehouse_code'), 
                     DB::raw('COUNT(DISTINCT opname_reference_details.bin_code) as total_bins'), 
                     DB::raw('COUNT(opname_reference_details.id) as total_sku')
                 )
-                ->groupBy('warehouse_id', 'zone', 'level', 'ganjil_genap', 'aisle')
+                ->groupBy('bins.warehouse_id', 'warehouses.warehouse_code')
                 ->get();
                 
             $currentAssignments = \App\Models\OpnameUserArea::where('session_id', $session->id)->with('user')->get();
             foreach ($currentAssignments as $asg) {
-                $key = $asg->warehouse_id . '_' . ($asg->aisle ?? 'ALL');
+                $key = $asg->warehouse_id;
                 if ($asg->team_role === 'TEAM_RECOUNT') {
                     $assignmentsMap['GLOBAL_RECOUNT'][] = $asg;
                 } else {
@@ -60,19 +58,16 @@ class AssignmentController extends Controller
         $request->validate([
             'session_id' => 'required|exists:opname_sessions,id',
             'warehouse_id' => 'required|string',
-            'aisle' => 'required|string',
             'team_a_users' => 'nullable|array',
             'team_b_users' => 'nullable|array'
         ]);
 
         $sessionId = $request->session_id;
         $warehouseId = $request->warehouse_id;
-        $aisle = $request->aisle == 'ALL' ? null : $request->aisle;
 
         // Delete existing assignments for this area in this session to replace them
         \App\Models\OpnameUserArea::where('session_id', $sessionId)
             ->where('warehouse_id', $warehouseId)
-            ->where('aisle', $aisle)
             ->delete();
 
         $inserts = [];
@@ -84,7 +79,7 @@ class AssignmentController extends Controller
                 $inserts[] = [
                     'session_id' => $sessionId,
                     'warehouse_id' => $warehouseId,
-                    'aisle' => $aisle,
+                    'aisle' => 'ALL', // Simple assignments set aisle to ALL
                     'user_id' => $userId,
                     'team_role' => 'TEAM_A',
                     'created_at' => now(),
@@ -100,7 +95,7 @@ class AssignmentController extends Controller
                 $inserts[] = [
                     'session_id' => $sessionId,
                     'warehouse_id' => $warehouseId,
-                    'aisle' => $aisle,
+                    'aisle' => 'ALL', // Simple assignments set aisle to ALL
                     'user_id' => $userId,
                     'team_role' => 'TEAM_B',
                     'created_at' => now(),
@@ -113,7 +108,7 @@ class AssignmentController extends Controller
             \App\Models\OpnameUserArea::insert($inserts);
         }
 
-        return redirect()->route('sodc.assignments.index')->with('success', 'Assignment berhasil disimpan untuk Gudang ' . $warehouseId . ($aisle ? ' Lorong ' . $aisle : ''));
+        return redirect()->route('sodc.assignments.index')->with('success', 'Assignment berhasil disimpan untuk Gudang ' . $warehouseId);
     }
 
     public function storeRecountTeam(Request $request)

@@ -1,20 +1,14 @@
-<header class="global-header" style="display: flex; justify-content: space-between; align-items: center; padding: 0 24px 0 20px; height: 70px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-bottom: 1px solid var(--phoenix-border-color); flex-shrink: 0; z-index: 1050;">
+<header class="global-header" style="display: flex; justify-content: space-between; align-items: center; padding: 0 24px 0 0; height: 70px; background: #EDEDED; border-bottom: 1px solid #D9DEE4; flex-shrink: 0; z-index: 1050;">
     
     <div style="display: flex; align-items: center;">
-        <!-- Brand Logo -->
-        <div id="headerBrandContainer" style="display: flex; align-items: center; gap: 12px; width: 230px; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; white-space: nowrap;">
-            <i class="fas fa-chalkboard-user" style="font-size: 24px; color: var(--phoenix-primary); flex-shrink: 0; margin-left: 4px;"></i>
-            <span id="headerBrandText" style="font-weight: 800; font-size: 1.25rem; color: var(--phoenix-dark); letter-spacing: -0.5px; transition: opacity 0.2s;">Dashboard</span>
-        </div>
-        
         <!-- Toggle Btn -->
         <button id="toggleSidebarBtn" style="background: transparent; border: none; cursor: pointer; color: var(--phoenix-text-muted); padding: 8px 16px; margin-right: 24px; font-size: 1.1rem; transition: color 0.2s;" onmouseover="this.style.color='var(--phoenix-primary)'" onmouseout="this.style.color='var(--phoenix-text-muted)'">
             <i class="fas fa-bars" id="toggleIcon"></i>
         </button>
 
         <!-- Bagian Kiri: Title & Actions -->
-        <div class="page-header-left" style="display: flex; align-items: center; gap: 16px;">
-            <h1 style="font-size: 1.15rem; font-weight: 800; color: var(--phoenix-dark); margin: 0; letter-spacing: -0.02em;">@yield('page_title', 'Dashboard')</h1>
+        <div class="page-header-left" style="display: flex; align-items: center; gap: 16px; margin-left: 10px;">
+            <h1 style="font-size: 1.15rem; font-weight: 400; color: #73879C; margin: 0;">@yield('page_title', 'Dashboard')</h1>
             @yield('page_actions')
         </div>
     </div>

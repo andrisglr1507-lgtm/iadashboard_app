@@ -111,6 +111,9 @@ Route::prefix('sodc')->name('sodc.')->group(function () {
     Route::get('/sync_logs', function() { return 'Sync Logs'; })->name('sync_logs.index');
     Route::get('/results', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'index'])->name('results.index');
     Route::post('/results/recount', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'inputRecount'])->name('results.input_recount');
+    Route::post('/results/assign_r3', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'assignR3'])->name('results.assign_r3');
+    Route::get('/results/export_simple', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'exportSimple'])->name('results.export_simple');
+    Route::get('/results/export_complex', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'exportComplex'])->name('results.export_complex');
     Route::get('/approvals', function() { return 'Approvals'; })->name('approvals.index');
     
     // Bad Stock

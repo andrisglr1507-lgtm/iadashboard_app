@@ -57,8 +57,11 @@ class CountController extends Controller
             if ($area && $area->team_role) {
                 $teamId = $area->team_role;
             } else {
-                // Gunakan team dari request jika tersedia
-                $teamId = $request->team ?? 'UNKNOWN';
+                // BLOCKER: Reject submission if user is not assigned to any team
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akses ditolak: Anda belum diberikan tugas (Assignment) pada Sesi Opname ini. Silakan hubungi Admin untuk mendapatkan tim.'
+                ], 403);
             }
             
             // Override with RECOUNT team if it is a recount task
@@ -150,6 +153,7 @@ class CountController extends Controller
                             'sku_code' => $product->sku_code,
                             'bin_code' => $binCode,
                             'system_qty' => 0, // KUNCI UTAMA: Sistem menganggap 0
+                            'is_ad_hoc' => true,
                             'uom' => $product->uom,
                             'stock_status' => 'AVAILABLE',
                         ]);
@@ -189,7 +193,13 @@ class CountController extends Controller
             // Tentukan count_sequence berdasarkan apakah ini recount atau reguler
             $targetSequence = 1;
             if ($teamId === 'RECOUNT' && isset($recount)) {
-                $targetSequence = ($recount->round_number == 1) ? 2 : 3;
+                if ($recount->round_number == 1) {
+                    $targetSequence = 2;
+                } else if ($recount->round_number == 2) {
+                    $targetSequence = 3;
+                } else if ($recount->round_number == 3) {
+                    $targetSequence = 4;
+                }
             }
 
             // Simpan Hitungan ke opname_counts
@@ -214,7 +224,7 @@ class CountController extends Controller
                 OpnameCount::create([
                     'count_uuid' => Str::uuid(),
                     'session_id' => $session->id,
-                    'assignment_id' => 0, // Bypass field yang tidak nullable
+                    'assignment_id' => null, // Kolom ini sekarang nullable, bypass foreign key lama
                     'reference_detail_id' => $refDetailId,
                     'team_id' => $teamId,
                     'count_qty' => $qty,
@@ -229,7 +239,7 @@ class CountController extends Controller
             }
             
             // Langsung update opname_results jika ini RECOUNT agar laravel web tidak menunjukkan 0
-            if ($targetSequence == 2 || $targetSequence == 3) {
+            if ($targetSequence >= 2 && $targetSequence <= 4) {
                 $resultRow = \App\Models\OpnameResult::where('session_id', $session->id)
                     ->where('reference_detail_id', $refDetailId)
                     ->first();
@@ -238,11 +248,16 @@ class CountController extends Controller
                         $resultRow->recount1_qty = $qty;
                     } else if ($targetSequence == 3) {
                         $resultRow->recount2_qty = $qty;
+                    } else if ($targetSequence == 4) {
+                        $resultRow->recount3_qty = $qty;
+                        $resultRow->final_qty = $qty;
+                        $resultRow->result_status = 'FINAL';
                     }
                     $resultRow->save();
                     
-                    // Juga update status ke RECOUNT_SUBMITTED agar bisa direkonsiliasi ulang nanti oleh web
-                    $resultRow->update(['result_status' => 'RECOUNT']);
+                    if ($targetSequence != 4) {
+                        $resultRow->update(['result_status' => 'RECOUNT']);
+                    }
                 }
 
                 // 🔹 LOGIKA PEMBERSIHAN TUGAS RECOUNT (OPSI 1)
@@ -368,6 +383,100 @@ class CountController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => 'Data tidak ditemukan, namun dianggap sudah terhapus.']);
+    }
+    public function completeBin(Request $request)
+    {
+        $request->validate([
+            'bin_code' => 'required|string',
+        ]);
+
+        $user = $request->user();
+        $sessionId = $request->input('session_id') ?? $request->header('X-Session-Id');
+        
+        $activeSessionQuery = \App\Models\OpnameSession::where('status', 'ACTIVE');
+        if ($sessionId) {
+            $activeSessionQuery->where('id', $sessionId);
+        }
+        
+        $session = $activeSessionQuery->first();
+        if (!$session) {
+            return response()->json(['success' => false, 'message' => 'Tidak ada sesi opname aktif.'], 400);
+        }
+
+        $binCode = $request->bin_code;
+        $bin = \App\Models\Bin::where('bin_code', $binCode)->first();
+        
+        $teamId = null;
+        if ($bin) {
+            $area = \App\Models\OpnameUserArea::where('session_id', $session->id)
+                ->where('user_id', $user->id)
+                ->first();
+                
+            if ($area && $area->team_role) {
+                $teamId = $area->team_role;
+            }
+            
+            // Override if it is a recount assignment
+            if (\Illuminate\Support\Facades\Schema::hasTable('opname_recount_assignments')) {
+                $recount = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                    ->where('session_id', $session->id)
+                    ->where('assigned_to', $user->id)
+                    ->where('location_code', $bin->bin_code)
+                    ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS'])
+                    ->orderBy('round_number', 'desc')
+                    ->first();
+                if ($recount) {
+                    $teamId = 'RECOUNT';
+                }
+            }
+
+            if (!$teamId || $teamId === 'UNKNOWN') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akses ditolak: Anda belum diberikan tugas.'
+                ], 403);
+            }
+        }
+
+        // Ambil semua barang (termasuk ad-hoc dari tim lain) di rak ini
+        $refDetails = \App\Models\OpnameReferenceDetail::where('reference_id', $session->reference_id)
+            ->where('bin_code', $binCode)
+            ->get();
+
+        $insertedCount = 0;
+        foreach ($refDetails as $ref) {
+            // Cek apakah tim ini sudah menghitung barang ini
+            $existingCount = \App\Models\OpnameCount::where('session_id', $session->id)
+                ->where('team_id', $teamId)
+                ->where('reference_detail_id', $ref->id)
+                ->first();
+
+            // Jika belum hitung sama sekali, paksa nilai 0
+            if (!$existingCount) {
+                \App\Models\OpnameCount::create([
+                    'count_uuid' => \Illuminate\Support\Str::uuid(),
+                    'session_id' => $session->id,
+                    'assignment_id' => null,
+                    'reference_detail_id' => $ref->id,
+                    'team_id' => $teamId,
+                    'count_qty' => 0,
+                    'input_karton' => 0,
+                    'input_pcs' => 0,
+                    'count_status' => 'SUBMITTED',
+                    'count_sequence' => 1,
+                    'counted_by' => $user->id,
+                    'counted_at' => now(),
+                    'client_created_at' => now(),
+                ]);
+                $insertedCount++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Rak $binCode berhasil ditutup. $insertedCount barang kosong (qty 0) telah ter-generate otomatis.",
+            'inserted_zero_qty' => $insertedCount
+        ]);
     }
 }
 

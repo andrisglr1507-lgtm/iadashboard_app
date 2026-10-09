@@ -47,7 +47,7 @@ class ReferenceController extends Controller
         $callback = function() use($columns) {
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
-            fputcsv($file, ['AA.001.10', 'PRD001', '120', 'PCS', 'BATCH-123', '2027-12-31']);
+            fputcsv($file, ['AA.001.10', 'PRD001', '120', '24', 'BATCH-123', '2027-12-31']);
             fclose($file);
         };
         

@@ -1,3 +1,8 @@
+@if(isset($item['header']))
+    <li class="menu-header" style="padding: 24px 16px 8px 16px; font-size: 0.65rem; font-weight: 800; color: #8ba0b5; text-transform: uppercase; letter-spacing: 1px;">
+        <span class="header-text" style="transition: opacity 0.2s;">{{ $item['header'] }}</span>
+    </li>
+@else
 @php
     $isActive = false;
     $hasActiveChild = false;
@@ -41,7 +46,7 @@
         </div>
         <ul class="submenu @if($hasActiveChild) open @endif">
             @foreach($item['submenu'] as $subItem)
-                @include('partials.menu-item', ['item' => $subItem])
+                @include('partials.menu-item', ['item' => $subItem, 'isSub' => true])
             @endforeach
         </ul>
     </li>
@@ -50,8 +55,11 @@
         <a href="{{ isset($item['route']) ? route($item['route']) : '#' }}" 
            class="menu-link @if($isActive) active-page @endif" 
            data-tooltip="{{ $item['title'] }}">
-            <i class="{{ $item['icon'] }}"></i>
+            @if(!isset($isSub) || !$isSub)
+                <i class="{{ $item['icon'] }}"></i>
+            @endif
             <span class="menu-text">{{ $item['title'] }}</span>
         </a>
     </li>
+@endif
 @endif

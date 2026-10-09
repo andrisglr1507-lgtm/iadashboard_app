@@ -58,23 +58,23 @@ class TaskController extends Controller
             ->pluck('products.principal')
             ->toArray();
 
-        // Fetch my recount assignments for this session
+        // Fetch my recount assignments for this session (GET ALL STATUSES INCLUDING COMPLETED)
         $myRecountsRaw = collect([]);
         if (\Illuminate\Support\Facades\Schema::hasTable('opname_recount_assignments')) {
             $myRecountsRaw = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
                 ->where('session_id', $activeSession->id)
-                ->where('assigned_to', $user->id) // Fix: use user->id instead of user_id
-                ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS'])
+                ->where('assigned_to', $user->id)
                 ->get();
         }
             
-        // Map recount tasks by bin_code and sku
+        // Map recount tasks by bin_code AND round
         $recountBins = [];
-        $recountItems = []; // bin_code_sku => round_number
         foreach ($myRecountsRaw as $r) {
             $rType = 'R' . ($r->round_number ?? 1);
-            $recountBins[$r->location_code] = $rType;
-            $recountItems[$r->location_code . '_' . $r->id_product] = $rType;
+            if (!isset($recountBins[$r->location_code])) {
+                $recountBins[$r->location_code] = [];
+            }
+            $recountBins[$r->location_code][$rType] = $r->status;
         }
 
         // 3. Find the user's assigned areas (can be multiple)
@@ -83,7 +83,6 @@ class TaskController extends Controller
             ->get();
             
         // Build a helper to quickly check my role for a warehouse & aisle
-        // key: warehouseId_aisle
         $myRoles = [];
         foreach ($myAreas as $area) {
             $key = $area->warehouse_id . '_' . ($area->aisle ?? 'ALL');
@@ -93,8 +92,6 @@ class TaskController extends Controller
         $myGlobalTeamRole = $myAreas->isNotEmpty() ? $myAreas->first()->team_role : 'UNASSIGNED';
 
         // 4. Get all unique bins that my team has ALREADY counted in this session
-        // Since roles are dynamic per zone, this is trickier. 
-        // We will just fetch ALL counts for this session, and later check.
         $allCounts = DB::table('opname_counts')
             ->join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
             ->leftJoin('products', 'opname_reference_details.sku_code', '=', 'products.sku_code')
@@ -131,6 +128,7 @@ class TaskController extends Controller
                 'opname_reference_details.id as reference_detail_id',
                 'opname_reference_details.sku_code',
                 'opname_reference_details.system_qty',
+                  'opname_reference_details.is_ad_hoc',
                 'bins.warehouse_id', 'bins.zone', 'bins.aisle', 'bins.level', 'bins.ganjil_genap'
             )
             ->get();
@@ -138,53 +136,75 @@ class TaskController extends Controller
         $binsAssoc = [];
         foreach ($details as $bin) {
             $code = $bin->bin_code;
-            if (!isset($binsAssoc[$code])) {
-                $wId = $bin->warehouse_id ?? 'UNKNOWN';
-                $parts = explode('.', $code);
-                $zone = $bin->zone ?? (isset($parts[0]) ? $parts[0] : 'UNKNOWN');
-                $aisle = $bin->aisle ?? (isset($parts[1]) ? $parts[1] : 'ALL');
-                $level = $bin->level ?? (isset($parts[2]) ? $parts[2] : '1');
-                $ganjilGenap = $bin->ganjil_genap ?? 'UNKNOWN';
+            $wId = $bin->warehouse_id ?? 'UNKNOWN';
+            $parts = explode('.', $code);
+            $zone = $bin->zone ?? (isset($parts[0]) ? $parts[0] : 'UNKNOWN');
+            $aisle = $bin->aisle ?? (isset($parts[1]) ? $parts[1] : 'ALL');
+            $level = $bin->level ?? (isset($parts[2]) ? $parts[2] : '1');
+            $ganjilGenap = $bin->ganjil_genap ?? 'UNKNOWN';
+            
+            $myRoleForBin = $myRoles[$wId . '_' . $aisle] ?? $myRoles[$wId . '_ALL'] ?? null;
+            $countedByTeams = isset($countedStatus[$code]) ? array_values(array_unique($countedStatus[$code])) : [];
+            $actualPrincipals = isset($countedPrincipals[$code]) ? array_values(array_unique($countedPrincipals[$code])) : [];
+            $isAdHoc = (bool)$bin->is_ad_hoc;
+            
+            if ($myGlobalTeamRole === 'TEAM_RECOUNT') {
+                if (isset($recountBins[$code])) {
+                    foreach ($recountBins[$code] as $rType => $status) {
+                        $uniqueCode = $code . '_' . $rType;
+                        if (!isset($binsAssoc[$uniqueCode])) {
+                            $isCounted = ($status === 'COMPLETED');
+                            $binsAssoc[$uniqueCode] = [
+                                'bin_code' => $code, // Keep original bin_code for UI rendering
+                                'warehouse_id' => $wId,
+                                'zone' => $zone,
+                                'aisle' => $aisle,
+                                'level' => $level,
+                                'ganjil_genap' => $ganjilGenap,
+                                'my_role_for_this_bin' => $myRoleForBin,
+                                'is_counted_by_my_team' => $isCounted,
+                                'counted_by_teams' => $countedByTeams,
+                                'actual_principals' => $actualPrincipals,
+                                'is_ad_hoc' => $isAdHoc,
+                                'taskType' => $rType,
+                                'expected_items' => []
+                            ];
+                        }
+                        
+                        $binsAssoc[$uniqueCode]['expected_items'][] = [
+                            'id_product' => $bin->sku_code,
+                            'reference_detail_id' => $bin->reference_detail_id
+                        ];
+                    }
+                }
+            } else {
+                if (!isset($binsAssoc[$code])) {
+                    $isCounted = isset($countedStatus[$code]) && in_array($myGlobalTeamRole, $countedStatus[$code]);
+                    $binsAssoc[$code] = [
+                        'bin_code' => $code,
+                        'warehouse_id' => $wId,
+                        'zone' => $zone,
+                        'aisle' => $aisle,
+                        'level' => $level,
+                        'ganjil_genap' => $ganjilGenap,
+                        'my_role_for_this_bin' => $myRoleForBin,
+                        'is_counted_by_my_team' => $isCounted,
+                        'counted_by_teams' => $countedByTeams,
+                        'actual_principals' => $actualPrincipals,
+                        'is_ad_hoc' => $isAdHoc,
+                        'taskType' => 'NORMAL',
+                        'expected_items' => []
+                    ];
+                }
                 
-                $myRoleForBin = $myRoles[$wId . '_' . $aisle] ?? $myRoles[$wId . '_ALL'] ?? null;
-                $isCounted = isset($countedStatus[$code]) && in_array($myGlobalTeamRole, $countedStatus[$code]);
-
-                $binsAssoc[$code] = [
-                    'bin_code' => $code,
-                    'warehouse_id' => $wId,
-                    'zone' => $zone,
-                    'aisle' => $aisle,
-                    'level' => $level,
-                    'ganjil_genap' => $ganjilGenap,
-                    'my_role_for_this_bin' => $myRoleForBin,
-                    'is_counted_by_my_team' => $isCounted,
-                    'counted_by_teams' => isset($countedStatus[$code]) ? array_values(array_unique($countedStatus[$code])) : [],
-                    'actual_principals' => isset($countedPrincipals[$code]) ? array_values(array_unique($countedPrincipals[$code])) : [],
-                    'is_ad_hoc' => true, // Will be set to false if any item has system_qty > 0
-                    'taskType' => $recountBins[$code] ?? 'NORMAL', // Attach recount type
-                    'expected_items' => []
+                $binsAssoc[$code]['expected_items'][] = [
+                    'id_product' => $bin->sku_code,
+                    'reference_detail_id' => $bin->reference_detail_id
                 ];
             }
-            
-            // If at least one item in this bin has system_qty > 0, it means the bin itself was part of the WMS target
-            if ($bin->system_qty > 0) {
-                $binsAssoc[$code]['is_ad_hoc'] = false;
-            }
-            
-            // Add SKU item to this bin
-            $binsAssoc[$code]['expected_items'][] = [
-                'id_product' => $bin->sku_code,
-                'reference_detail_id' => $bin->reference_detail_id
-            ];
         }
 
         $mappedBins = array_values($binsAssoc);
-
-        if ($myGlobalTeamRole === 'TEAM_RECOUNT') {
-            $mappedBins = array_values(array_filter($mappedBins, function($bin) use ($recountBins) {
-                return isset($recountBins[$bin['bin_code']]);
-            }));
-        }
 
         // Fetch ALL master bins for the involved warehouses
         $warehouseIds = $details->pluck('warehouse_id')->unique()->filter()->toArray();
@@ -236,20 +256,22 @@ class TaskController extends Controller
 
         $user = $request->user();
         $myAreas = \Illuminate\Support\Facades\DB::table('opname_user_areas')
-            ->join('opname_teams', 'opname_user_areas.team_id', '=', 'opname_teams.id')
-            ->where('opname_user_areas.user_id', $user->id)
-            ->where('opname_user_areas.session_id', $activeSession->id)
-            ->select('opname_user_areas.*', 'opname_teams.team_code', 'opname_teams.team_type as team_role')
+            ->where('user_id', $user->id)
+            ->where('session_id', $activeSession->id)
             ->get();
         $myGlobalTeamRole = $myAreas->isNotEmpty() ? $myAreas->first()->team_role : 'UNASSIGNED';
 
-        $myRecountsRaw = DB::table('opname_recount_assignments')
+        // Fetch ALL recount assignments for this bin (including COMPLETED, for all rounds)
+        $recountQuery = DB::table('opname_recount_assignments')
             ->where('session_id', $activeSession->id)
-            ->where('assigned_to', $user->id)
-            ->where('location_code', $binCode)
-            ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS'])
-            ->get()
-            ->keyBy('id_product');
+            ->where('location_code', $binCode);
+            
+        if ($myGlobalTeamRole === 'TEAM_RECOUNT') {
+            // Team Recount can access any recount assigned for this bin
+            $myRecountsRaw = $recountQuery->get();
+        } else {
+            $myRecountsRaw = $recountQuery->where('assigned_to', $user->id)->get();
+        }
 
         // Ambil semua counts untuk reference details di bin ini
         $allCounts = \App\Models\OpnameCount::where('session_id', $activeSession->id)
@@ -262,62 +284,101 @@ class TaskController extends Controller
             ->get()
             ->keyBy('reference_detail_id');
 
-        $expectedItems = $details->map(function ($detail) use ($allCounts, $myRecountsRaw, $allResults, $user, $myGlobalTeamRole) {
-            $productId = $detail->product->id_product ?? $detail->sku_code;
-            $taskType = 'NORMAL';
-            $expectedSequence = 1;
-            
-            if ($myRecountsRaw->has($productId)) {
-                $roundNumber = $myRecountsRaw->get($productId)->round_number ?? 1;
-                $taskType = 'R' . $roundNumber;
-                $expectedSequence = $roundNumber + 1; // R1 -> seq 2, R2 -> seq 3
-            }
+        $expectedItems = collect([]);
 
-            // Cari count spesifik milik user/team ini sesuai sequence tugasnya
-            $myCount = null;
-            if ($taskType == 'NORMAL') {
+        foreach ($details as $detail) {
+            $productId = $detail->product->id_product ?? $detail->sku_code;
+            $resultRef = $allResults->get($detail->id);
+            
+            $countA = $allCounts->where('reference_detail_id', $detail->id)->where('team_id', 'TEAM_A')->where('count_sequence', 1)->first();
+            $countB = $allCounts->where('reference_detail_id', $detail->id)->where('team_id', 'TEAM_B')->where('count_sequence', 1)->first();
+            $countR1 = $allCounts->where('reference_detail_id', $detail->id)->where('team_id', 'RECOUNT')->where('count_sequence', 2)->first();
+            $countR2 = $allCounts->where('reference_detail_id', $detail->id)->where('team_id', 'RECOUNT')->where('count_sequence', 3)->first();
+
+            // Check if there are recount assignments for this product
+            $matchingRecounts = $myRecountsRaw->where('id_product', $productId);
+
+            if ($matchingRecounts->isNotEmpty()) {
+                foreach ($matchingRecounts as $rc) {
+                    $roundNumber = $rc->round_number ?? 1;
+                    $taskType = 'R' . $roundNumber;
+                    $expectedSequence = $roundNumber + 1;
+
+                    $myCount = $allCounts->where('reference_detail_id', $detail->id)
+                                         ->where('team_id', 'RECOUNT')
+                                         ->where('count_sequence', $expectedSequence)
+                                         ->first();
+
+                    $isCounted = ($rc->status === 'COMPLETED') || ($myCount !== null);
+
+                    $expectedItems->push([
+                        'id_product' => $productId,
+                        'product_name' => $detail->product->product_name ?? 'Unknown Product',
+                        'uom' => $detail->product->uom ?? 'PCS',
+                        'reference_detail_id' => $detail->id,
+                        'is_counted' => $isCounted,
+                        'counted_qty_karton' => $myCount ? $myCount->input_karton : 0,
+                        'counted_qty_pcs' => $myCount ? $myCount->input_pcs : 0,
+                        'counted_final_qty' => $myCount ? $myCount->count_qty : 0,
+                        'taskType' => $taskType,
+                        // Referensi Tim A
+                        'team_a_qty' => $resultRef ? $resultRef->team_a_qty : ($countA ? $countA->count_qty : null),
+                        'team_a_karton' => $countA ? $countA->input_karton : 0,
+                        'team_a_pcs' => $countA ? $countA->input_pcs : 0,
+                        // Referensi Tim B
+                        'team_b_qty' => $resultRef ? $resultRef->team_b_qty : ($countB ? $countB->count_qty : null),
+                        'team_b_karton' => $countB ? $countB->input_karton : 0,
+                        'team_b_pcs' => $countB ? $countB->input_pcs : 0,
+                        // Referensi Tim R1
+                        'team_r1_qty' => $resultRef ? $resultRef->recount1_qty : ($countR1 ? $countR1->count_qty : null),
+                        'team_r1_karton' => $countR1 ? $countR1->input_karton : 0,
+                        'team_r1_pcs' => $countR1 ? $countR1->input_pcs : 0,
+                        // Referensi Tim R2
+                        'team_r2_qty' => $resultRef ? $resultRef->recount2_qty : ($countR2 ? $countR2->count_qty : null),
+                        'team_r2_karton' => $countR2 ? $countR2->input_karton : 0,
+                        'team_r2_pcs' => $countR2 ? $countR2->input_pcs : 0,
+                    ]);
+                }
+            } else {
+                // NORMAL Task
                 $myCount = $allCounts->where('reference_detail_id', $detail->id)
                                      ->where('team_id', $myGlobalTeamRole)
                                      ->where('count_sequence', 1)
                                      ->first();
-            } else {
-                // Untuk Recount, hanya terhitung jika ada count dengan sequence yang diminta
-                $myCount = $allCounts->where('reference_detail_id', $detail->id)
-                                     ->where('team_id', 'RECOUNT')
-                                     ->where('count_sequence', $expectedSequence)
-                                     ->first();
+
+                $expectedItems->push([
+                    'id_product' => $productId,
+                    'product_name' => $detail->product->product_name ?? 'Unknown Product',
+                    'uom' => $detail->product->uom ?? 'PCS',
+                    'reference_detail_id' => $detail->id,
+                    'is_counted' => $myCount !== null,
+                    'counted_qty_karton' => $myCount ? $myCount->input_karton : 0,
+                    'counted_qty_pcs' => $myCount ? $myCount->input_pcs : 0,
+                    'counted_final_qty' => $myCount ? $myCount->count_qty : 0,
+                    'taskType' => 'NORMAL',
+                    // Referensi Tim A
+                    'team_a_qty' => $resultRef ? $resultRef->team_a_qty : ($countA ? $countA->count_qty : null),
+                    'team_a_karton' => $countA ? $countA->input_karton : 0,
+                    'team_a_pcs' => $countA ? $countA->input_pcs : 0,
+                    // Referensi Tim B
+                    'team_b_qty' => $resultRef ? $resultRef->team_b_qty : ($countB ? $countB->count_qty : null),
+                    'team_b_karton' => $countB ? $countB->input_karton : 0,
+                    'team_b_pcs' => $countB ? $countB->input_pcs : 0,
+                    // Referensi Tim R1
+                    'team_r1_qty' => null,
+                    'team_r1_karton' => 0,
+                    'team_r1_pcs' => 0,
+                    // Referensi Tim R2
+                    'team_r2_qty' => null,
+                    'team_r2_karton' => 0,
+                    'team_r2_pcs' => 0,
+                ]);
             }
-
-            $resultRef = $allResults->get($detail->id);
-            // Kita coba extract team_a_qty (misal asumsikan jika pakai input karton dll belum tersimpan rinci di opname_results, minimal totalnya)
-            // Karena opname_counts punya rincian, kita bisa cari hitungan asli team A dan B
-            $countA = $allCounts->where('reference_detail_id', $detail->id)->where('team_id', 'TEAM_A')->where('count_sequence', 1)->first();
-            $countB = $allCounts->where('reference_detail_id', $detail->id)->where('team_id', 'TEAM_B')->where('count_sequence', 1)->first();
-
-            return [
-                'id_product' => $productId,
-                'product_name' => $detail->product->product_name ?? 'Unknown Product',
-                'uom' => $detail->product->uom ?? 'PCS',
-                'reference_detail_id' => $detail->id,
-                'is_counted' => $myCount ? true : false,
-                'counted_qty_karton' => $myCount ? $myCount->input_karton : 0,
-                'counted_qty_pcs' => $myCount ? $myCount->input_pcs : 0,
-                'counted_final_qty' => $myCount ? $myCount->count_qty : 0,
-                'taskType' => $taskType,
-                // Referensi Tim A
-                'team_a_qty' => $resultRef ? $resultRef->team_a_qty : ($countA ? $countA->count_qty : null),
-                'team_a_karton' => $countA ? $countA->input_karton : 0,
-                'team_a_pcs' => $countA ? $countA->input_pcs : 0,
-                // Referensi Tim B
-                'team_b_qty' => $resultRef ? $resultRef->team_b_qty : ($countB ? $countB->count_qty : null),
-                'team_b_karton' => $countB ? $countB->input_karton : 0,
-                'team_b_pcs' => $countB ? $countB->input_pcs : 0,
-            ];
-        })->values()->toArray();
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $expectedItems
+            'data' => $expectedItems->values()->toArray()
         ]);
     }
 }

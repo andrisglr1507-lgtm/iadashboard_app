@@ -3,26 +3,26 @@
    ======================================== */
 
 :root {
-    --phoenix-primary: #3874ff;
-    --phoenix-primary-hover: #2960dc;
-    --phoenix-secondary: #748194;
-    --phoenix-success: #00d27a;
-    --phoenix-info: #27bcfd;
-    --phoenix-warning: #f5803e;
-    --phoenix-danger: #e63757;
-    --phoenix-light: #f5f7fa;
-    --phoenix-dark: #0b1727;
+    --phoenix-primary: #1ABB9C; /* Gentelella iconic green */
+    --phoenix-primary-hover: #169F85;
+    --phoenix-secondary: #73879C; /* Gentelella secondary gray */
+    --phoenix-success: #26B99A;
+    --phoenix-info: #3498DB;
+    --phoenix-warning: #F39C12;
+    --phoenix-danger: #E74C3C;
+    --phoenix-light: #F7F7F7;
+    --phoenix-dark: #2A3F54; /* Gentelella dark sidebar */
     
-    --phoenix-text-main: #31374a;
-    --phoenix-text-muted: #748194;
+    --phoenix-text-main: #73879C;
+    --phoenix-text-muted: #95A5A6;
     
-    --phoenix-border-color: #e3e6ed;
-    --phoenix-bg-main: #f5f7fa;
+    --phoenix-border-color: #E6E9ED;
+    --phoenix-bg-main: #F7F7F7; /* Gentelella main content bg */
     --phoenix-bg-card: #ffffff;
     
-    --phoenix-box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
-    --phoenix-border-radius: .5rem;
-    --phoenix-btn-radius: .375rem;
+    --phoenix-box-shadow: none; /* Gentelella is mostly flat */
+    --phoenix-border-radius: 4px; /* Classic slight roundness */
+    --phoenix-btn-radius: 3px;
 }
 
 * {
@@ -49,15 +49,15 @@ body {
 
 /* ========== PHOENIX SIDEBAR STYLES ========== */
 .sidebar {
-    background: var(--phoenix-bg-card);
-    box-shadow: 0 0 2rem 0 rgba(0,0,0,.05);
+    background: var(--phoenix-dark); /* Gentelella dark bg */
+    box-shadow: none;
     height: 100%;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-x: hidden;
     overflow-y: auto;
     width: 250px;
     flex-shrink: 0;
-    border-right: 1px solid var(--phoenix-border-color);
+    border-right: none;
     z-index: 1000;
 }
 
@@ -99,11 +99,11 @@ body {
 }
 
 .brand-name {
-    font-weight: 800;
+    font-weight: 400;
     font-size: 1.25rem;
-    color: var(--phoenix-dark);
+    color: #ECF0F1; /* Light text for brand */
     white-space: nowrap;
-    letter-spacing: -0.5px;
+    letter-spacing: 0.5px;
 }
 
 .sidebar.collapsed .brand-name {
@@ -144,6 +144,8 @@ body {
 
 .menu-list {
     list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
 .menu-item {
@@ -154,11 +156,11 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px 16px;
-    border-radius: var(--phoenix-border-radius);
-    color: var(--phoenix-text-muted);
-    font-weight: 600;
-    font-size: 0.875rem;
+    padding: 13px 15px;
+    border-radius: 0;
+    color: #E7E7E7; /* Gentelella light text */
+    font-weight: 500;
+    font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
@@ -166,28 +168,28 @@ body {
 }
 
 .menu-link i:first-child {
-    width: 20px;
-    font-size: 1rem;
-    color: #9da9bb;
+    width: 26px;
+    font-size: 1.1rem;
+    color: #E7E7E7;
     transition: color 0.2s ease;
 }
 
 .menu-link:hover {
-    color: var(--phoenix-text-main);
-    background: transparent;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.05); /* Slight lightening */
 }
 
 .menu-link:hover i:first-child {
-    color: var(--phoenix-text-main);
+    color: #ffffff;
 }
 
 .menu-link.active-page {
-    background: rgba(56, 116, 255, 0.1);
-    color: var(--phoenix-primary);
+    background: var(--phoenix-primary); /* Green active background */
+    color: #ffffff;
 }
 
 .menu-link.active-page i:first-child {
-    color: var(--phoenix-primary);
+    color: #ffffff;
 }
 
 /* Submenu Arrow */
@@ -204,14 +206,12 @@ body {
 /* Submenu Container */
 .submenu {
     list-style: none;
-    padding-left: 32px;
+    padding-left: 0;
+    margin: 0;
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease-out;
-}
-
-.submenu .submenu {
-    padding-left: 24px;
+    background: transparent;
 }
 
 .submenu.open {
@@ -220,9 +220,44 @@ body {
 }
 
 .submenu .menu-link {
-    padding: 8px 12px;
-    font-size: 0.85rem;
+    padding: 9px 15px 9px 50px; /* Indent submenus */
+    font-size: 0.8rem;
     font-weight: 400;
+    color: rgba(255,255,255,0.75);
+    background: transparent;
+    position: relative;
+}
+
+.submenu .menu-link::before {
+    background: #425668;
+    bottom: auto;
+    content: "";
+    height: 1px;
+    left: 27px;
+    margin-top: 8px;
+    position: absolute;
+    right: auto;
+    width: 10px;
+    z-index: 1;
+    border-radius: 0;
+}
+
+.submenu .menu-link::after {
+    border-left: 1px solid #425668;
+    bottom: 0;
+    content: "";
+    left: 27px;
+    position: absolute;
+    top: 0;
+}
+
+.submenu .menu-link:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.05);
+}
+
+.submenu .menu-link:hover::before {
+    background: #1ABB9C;
 }
 
 /* Collapsed Sidebar */
@@ -413,8 +448,8 @@ body {
 /* Phoenix Card */
 .content-panel {
     background: var(--phoenix-bg-card);
-    border-radius: var(--phoenix-border-radius);
-    box-shadow: var(--phoenix-box-shadow);
+    border-radius: 4px;
+    box-shadow: none;
     overflow: hidden;
     border: 1px solid var(--phoenix-border-color);
 }
@@ -423,15 +458,15 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--phoenix-border-color);
+    padding: 10px 17px; /* Gentelella tight padding */
+    border-bottom: 2px solid #E6E9ED; /* Thicker border for header */
     background: transparent;
 }
 
 .panel-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--phoenix-dark);
+    font-size: 1.15rem;
+    font-weight: 400; /* Lighter font weight */
+    color: var(--phoenix-text-main);
     margin: 0;
 }
 

@@ -52,9 +52,31 @@ class CountResultController extends Controller
             }
         }
 
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->whereHas('referenceDetail', function($q) use ($search) {
+                $q->where('sku_code', 'like', "%{$search}%")
+                  ->orWhere('bin_code', 'like', "%{$search}%")
+                  ->orWhereHas('product', function($q2) use ($search) {
+                      $q2->where('sku_name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $hasR3 = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+            ->where('session_id', $activeSessionId)
+            ->where('round_number', 3)
+            ->exists();
+            
+        // Cek apakah SEMUA penghitungan sudah selesai (MATCH, FINAL, APPROVED)
+        // Jika ada yang masih UNCOUNTED, WAITING, RECOUNT, maka isAllFinal = false
+        $isAllFinal = !OpnameResult::where('session_id', $activeSessionId)
+            ->whereNotIn('result_status', ['MATCH', 'FINAL', 'APPROVED'])
+            ->exists();
+
         $results = $query->orderBy('id', 'asc')->paginate(50);
 
-        return view('sodc.opname_results.index', compact('results', 'activeSessionId', 'activeSessions'));
+        return view('sodc.opname_results.index', compact('results', 'activeSessionId', 'activeSessions', 'hasR3', 'isAllFinal'));
     }
 
     private function runReconciliation($sessionId)
@@ -110,24 +132,30 @@ class CountResultController extends Controller
             $seq1 = $counts->where('count_sequence', 1)->values();
             $seq2 = $counts->where('count_sequence', 2)->values(); // Recount 1
             $seq3 = $counts->where('count_sequence', 3)->values(); // Recount 2
+            $seq4 = $counts->where('count_sequence', 4)->values(); // Recount 3
 
             $teamA = $seq1->get(0);
             $teamB = $seq1->get(1); // null jika mode SINGLE atau tim B belum hitung
             $r1 = $seq2->first();
             $r2 = $seq3->first();
+            $r3 = $seq4->first();
 
             $systemQty = (float) $ref->system_qty;
             $aQty = $teamA ? (float) $teamA->count_qty : null;
             $bQty = $teamB ? (float) $teamB->count_qty : null;
             $r1Qty = $r1 ? (float) $r1->count_qty : null;
             $r2Qty = $r2 ? (float) $r2->count_qty : null;
+            $r3Qty = $r3 ? (float) $r3->count_qty : null;
 
             $status = 'UNCOUNTED';
             $finalQty = 0;
 
             // Logika A vs B (Double Mode)
             if ($session->mode == 'DOUBLE') {
-                if ($aQty !== null && $bQty !== null) {
+                if ($r3Qty !== null) {
+                    $status = 'FINAL';
+                    $finalQty = $r3Qty;
+                } else if ($aQty !== null && $bQty !== null) {
                     if ($aQty == $bQty) {
                         $status = 'MATCH';
                         $finalQty = $aQty;
@@ -204,6 +232,7 @@ class CountResultController extends Controller
                     'team_b_qty' => $bQty,
                     'recount1_qty' => $r1Qty,
                     'recount2_qty' => $r2Qty,
+                    'recount3_qty' => $r3Qty,
                     'final_qty' => in_array($status, ['MATCH', 'FINAL', 'APPROVED']) ? $finalQty : null,
                     'variance_qty' => $varianceQty,
                     'variance_percentage' => $variancePct,
@@ -281,7 +310,7 @@ class CountResultController extends Controller
         $request->validate([
             'result_id' => 'required|exists:opname_results,id',
             'recount_qty' => 'required|numeric',
-            'level' => 'required|in:1,2'
+            'level' => 'required|in:1,2,3'
         ]);
 
         $result = OpnameResult::findOrFail($request->result_id);
@@ -292,7 +321,7 @@ class CountResultController extends Controller
             'session_id' => $result->session_id,
             'reference_detail_id' => $result->reference_detail_id,
             'count_qty' => $request->recount_qty,
-            'count_sequence' => $request->level == 1 ? 2 : 3,
+            'count_sequence' => $request->level == 1 ? 2 : ($request->level == 2 ? 3 : 4), // 4 untuk R3
             'count_status' => 'SUBMITTED',
             'counted_by' => auth()->id(),
             'client_created_at' => now(),
@@ -300,5 +329,60 @@ class CountResultController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Hasil Recount berhasil diinput!');
+    }
+    
+    public function assignR3(Request $request)
+    {
+        $request->validate([
+            'selected_results' => 'required|array',
+            'r3_assigned_to' => 'required'
+        ]);
+        
+        $activeSessionId = session('active_opname_session_id');
+        $userId = auth()->id();
+        $assignedCount = 0;
+        
+        foreach ($request->selected_results as $resultId) {
+            $result = OpnameResult::with('referenceDetail')->find($resultId);
+            if ($result && $result->referenceDetail) {
+                // Hapus assignment R3 sebelumnya untuk SKU ini jika ada
+                \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                    ->where('session_id', $activeSessionId)
+                    ->where('location_code', $result->referenceDetail->bin_code)
+                    ->where('id_product', $result->referenceDetail->sku_code)
+                    ->where('round_number', 3)
+                    ->delete();
+                    
+                \Illuminate\Support\Facades\DB::table('opname_recount_assignments')->insert([
+                    'session_id' => $activeSessionId,
+                    'location_code' => $result->referenceDetail->bin_code,
+                    'id_product' => $result->referenceDetail->sku_code, // Sesuai dengan kolom SKU kita
+                    'round_number' => 3, // Kode khusus R3
+                    'assigned_to' => $request->r3_assigned_to,
+                    'assigned_by' => $userId ?? 1,
+                    'status' => 'PENDING',
+                    'assigned_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+                $assignedCount++;
+            }
+        }
+        
+        return redirect()->back()->with('success', "Berhasil memberikan tugas R3 (Final Audit) untuk {$assignedCount} item (SKU).");
+    }
+
+    public function exportSimple(Request $request)
+    {
+        $sessionId = session('active_opname_session_id');
+        if (!$sessionId) return redirect()->back()->with('error', 'Tidak ada sesi aktif.');
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\Sodc\SimpleOpnameExport($sessionId), 'Opname_Simple_'.date('YmdHis').'.xlsx');
+    }
+
+    public function exportComplex(Request $request)
+    {
+        $sessionId = session('active_opname_session_id');
+        if (!$sessionId) return redirect()->back()->with('error', 'Tidak ada sesi aktif.');
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\Sodc\ComplexOpnameExport($sessionId), 'Opname_Complex_'.date('YmdHis').'.xlsx');
     }
 }

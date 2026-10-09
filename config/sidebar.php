@@ -3,9 +3,17 @@
 return [
     // --- SO DC APPLICATION MENUS ---
     [
+        'header' => 'Dash',
+    ],
+    [
         'title' => 'Dashboard',
         'icon' => 'fas fa-tachometer-alt',
         'route' => 'dashboard',
+    ],
+
+    // Header for Branch
+    [
+        'header' => 'Stock Opname DC',
     ],
     
     // Master Data
@@ -96,6 +104,40 @@ return [
             ],
         ],
     ],
+
+
+    // Header for Branch
+    [
+        'header' => 'Stock Opname CSAN',
+    ],
+
+    [
+        'title' => 'Session Management',
+        'icon' => 'fas fa-chart-bar',
+        'submenu' => [
+            [
+                'title' => 'Sync Logs (Mobile)',
+                'icon' => 'fas fa-sync-alt',
+                'route' => 'sodc.sync_logs.index',
+            ],
+            [
+                'title' => 'Count Results',
+                'icon' => 'fas fa-check-double',
+                'route' => 'sodc.results.index',
+            ],
+            [
+                'title' => 'Variance & Approvals',
+                'icon' => 'fas fa-file-signature',
+                'route' => 'sodc.approvals.index',
+            ],
+        ],
+    ],
+
+    
+
+
+
+
 
     // --- OLD MENUS (COMMENTED OUT FOR NOW) ---
     /*

@@ -22,7 +22,9 @@
             <p style="color: #64748b; font-size: 0.95rem; margin: 0;">Pilih Gudang target dan upload CSV hasil ekspor Warehouse Management System Anda.</p>
             <p style="color: #475569; font-size: 0.85rem; margin: 10px 0 0 0; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px dashed #cbd5e1;">
                 <b>Format Kolom CSV:</b><br>
-                <code style="color: #e21d48;">bin_code, sku_code, system_qty, uom, batch_number, expired_date</code>
+                <code style="color: #e21d48;">bin_code, sku_code, system_qty, uom, batch_number, expired_date</code><br><br>
+                <b>Catatan:</b><br>
+                Kolom <code>uom</code> (Unit of Measure) diisi dengan angka pecahan / isi per box (contoh: <code>24</code> atau <code>12</code>), bukan teks "PCS".
             </p>
         </div>
         <a href="{{ route('sodc.references.template') }}" style="display: inline-flex; align-items: center; gap: 8px; background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none;">

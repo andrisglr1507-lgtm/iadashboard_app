@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('opname_counts', function (Blueprint $table) {
+            $table->dropForeign('fk_count_team');
             $table->string('team_id', 50)->change();
         });
     }
