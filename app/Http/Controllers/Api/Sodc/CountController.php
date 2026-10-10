@@ -33,14 +33,19 @@ class CountController extends Controller
         // 1. Dapatkan Sesi Aktif dari ID atau fallback
         $sessionId = $request->input('session_id') ?? $request->header('X-Session-Id');
         
-        $activeSessionQuery = OpnameSession::where('status', 'ACTIVE');
+        $session = null;
         if ($sessionId) {
-            $activeSessionQuery->where('id', $sessionId);
+            $session = OpnameSession::find($sessionId);
+        } else {
+            $session = OpnameSession::where('status', 'ACTIVE')->first();
         }
         
-        $session = $activeSessionQuery->first();
         if (!$session) {
             return response()->json(['success' => false, 'message' => 'Tidak ada sesi opname aktif.'], 400);
+        }
+        
+        if ($session->status === 'CLOSED') {
+            return response()->json(['success' => false, 'message' => 'Session ini sudah close.'], 400);
         }
 
         // Find Team Role for this Bin (from UserArea)

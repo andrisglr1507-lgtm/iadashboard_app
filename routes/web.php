@@ -104,12 +104,18 @@ Route::prefix('sodc')->name('sodc.')->group(function () {
     Route::get('references/template', [\App\Http\Controllers\Sodc\Management\ReferenceController::class, 'downloadTemplate'])->name('references.template');
     Route::resource('references', \App\Http\Controllers\Sodc\Management\ReferenceController::class);
     Route::post('sessions/{id}/start', [\App\Http\Controllers\Sodc\Management\SessionController::class, 'start'])->name('sessions.start');
+    Route::post('sessions/{id}/close', [\App\Http\Controllers\Sodc\Management\SessionController::class, 'close'])->name('sessions.close');
     Route::resource('sessions', \App\Http\Controllers\Sodc\Management\SessionController::class);
     Route::post('assignments/store_recount_team', [\App\Http\Controllers\Sodc\Management\AssignmentController::class, 'storeRecountTeam'])->name('assignments.store_recount_team');
     Route::resource('assignments', \App\Http\Controllers\Sodc\Management\AssignmentController::class);
+    Route::get('assignments-bulk', [\App\Http\Controllers\Sodc\Management\AssignmentBulkController::class, 'index'])->name('assignments_bulk.index');
+    Route::post('assignments-bulk', [\App\Http\Controllers\Sodc\Management\AssignmentBulkController::class, 'store'])->name('assignments_bulk.store');
     
     // Opname Results (Placeholder)
+    Route::get('/input_by_team', [\App\Http\Controllers\Sodc\Management\InputByTeamController::class, 'index'])->name('input_by_team.index');
     Route::get('/sync_logs', function() { return 'Sync Logs'; })->name('sync_logs.index');
+    Route::get('/tracking', [\App\Http\Controllers\Sodc\Tracking\TrackingController::class, 'index'])->name('tracking.index');
+    Route::get('/recount_history', [\App\Http\Controllers\Sodc\Management\RecountHistoryController::class, 'index'])->name('recount_history.index');
     Route::get('/results', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'index'])->name('results.index');
     Route::post('/results/recount', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'inputRecount'])->name('results.input_recount');
     Route::post('/results/assign_r3', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'assignR3'])->name('results.assign_r3');

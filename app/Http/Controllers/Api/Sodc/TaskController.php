@@ -16,7 +16,8 @@ class TaskController extends Controller
      */
     public function activeSessions(Request $request)
     {
-        $sessions = OpnameSession::where('status', 'ACTIVE')->orderBy('id', 'desc')->get();
+        // Ambil sesi ACTIVE dan CLOSED agar muncul di aplikasi
+        $sessions = OpnameSession::whereIn('status', ['ACTIVE', 'CLOSED'])->orderBy('id', 'desc')->get();
         return response()->json([
             'success' => true,
             'message' => 'Berhasil mengambil daftar sesi aktif.',
@@ -35,18 +36,27 @@ class TaskController extends Controller
         // 1. Get the active session by ID if provided, otherwise fallback to the first one (for backward compatibility)
         $sessionId = $request->input('session_id') ?? $request->header('X-Session-Id');
         
-        $activeSessionQuery = OpnameSession::where('status', 'ACTIVE');
+        $activeSession = null;
         if ($sessionId) {
-            $activeSessionQuery->where('id', $sessionId);
+            $activeSession = OpnameSession::find($sessionId);
+        } else {
+            $activeSession = OpnameSession::where('status', 'ACTIVE')->first();
         }
         
-        $activeSession = $activeSessionQuery->first();
         if (!$activeSession) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak ada sesi opname yang aktif saat ini.',
                 'data' => null
             ], 404);
+        }
+        
+        if ($activeSession->status === 'CLOSED') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Session ini sudah close.',
+                'data' => null
+            ], 400);
         }
 
         // 2. Determine target principals dynamically
@@ -143,7 +153,11 @@ class TaskController extends Controller
             $level = $bin->level ?? (isset($parts[2]) ? $parts[2] : '1');
             $ganjilGenap = $bin->ganjil_genap ?? 'UNKNOWN';
             
-            $myRoleForBin = $myRoles[$wId . '_' . $aisle] ?? $myRoles[$wId . '_ALL'] ?? null;
+            $myRoleForBin = $myRoles[$wId . '_' . $aisle] 
+                         ?? $myRoles[$wId . '_ZONE_' . $zone . '_' . $ganjilGenap] 
+                         ?? $myRoles[$wId . '_ZONE_' . $zone] 
+                         ?? $myRoles[$wId . '_ALL'] 
+                         ?? null;
             $countedByTeams = isset($countedStatus[$code]) ? array_values(array_unique($countedStatus[$code])) : [];
             $actualPrincipals = isset($countedPrincipals[$code]) ? array_values(array_unique($countedPrincipals[$code])) : [];
             $isAdHoc = (bool)$bin->is_ad_hoc;
@@ -239,14 +253,19 @@ class TaskController extends Controller
     {
         $sessionId = $request->input('session_id') ?? $request->header('X-Session-Id');
         
-        $activeSessionQuery = OpnameSession::where('status', 'ACTIVE');
+        $activeSession = null;
         if ($sessionId) {
-            $activeSessionQuery->where('id', $sessionId);
+            $activeSession = OpnameSession::find($sessionId);
+        } else {
+            $activeSession = OpnameSession::where('status', 'ACTIVE')->first();
         }
         
-        $activeSession = $activeSessionQuery->first();
         if (!$activeSession) {
             return response()->json(['success' => false, 'message' => 'Tidak ada sesi aktif.'], 404);
+        }
+        
+        if ($activeSession->status === 'CLOSED') {
+            return response()->json(['success' => false, 'message' => 'Session ini sudah close.'], 400);
         }
 
         $details = OpnameReferenceDetail::with('product')

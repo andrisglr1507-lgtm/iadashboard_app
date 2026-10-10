@@ -87,7 +87,7 @@
                         @endif
                         <th style="padding: 12px 16px; text-align: right;">Final Qty</th>
                         <th style="padding: 12px 16px; text-align: center;">Status</th>
-                        <th style="padding: 12px 16px; text-align: center;">Aksi</th>
+                        {{-- <th style="padding: 12px 16px; text-align: center;">Aksi</th> --}}
                     </tr>
                 </thead>
                 <tbody>
@@ -148,7 +148,7 @@
                                     {{ $badgeText }}
                                 </span>
                             </td>
-                            <td style="padding: 12px 16px; text-align: center;">
+                            {{-- <td style="padding: 12px 16px; text-align: center;">
                                 @php
                                     $showInputR1 = $isR1;
                                     $showInputR2 = $isR2;
@@ -166,11 +166,11 @@
                                 @else
                                     <span style="color: #cbd5e1;">-</span>
                                 @endif
-                            </td>
+                            </td> --}}
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ ($hasR3 ?? false) ? 11 : 10 }}" style="text-align: center; padding: 40px; color: #64748b;">Tidak ada data yang ditemukan.</td>
+                            <td colspan="{{ ($hasR3 ?? false) ? 10 : 9 }}" style="text-align: center; padding: 40px; color: #64748b;">Tidak ada data yang ditemukan.</td>
                         </tr>
                     @endforelse
                 </tbody>

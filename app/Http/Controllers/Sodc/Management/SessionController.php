@@ -61,6 +61,18 @@ class SessionController extends Controller
         
         return redirect()->route('sodc.sessions.index')->with('success', 'Sesi ' . $item->session_code . ' berhasil di-START! Sesi ini sekarang AKTIF.');
     }
+    
+    public function close($id)
+    {
+        $item = OpnameSession::findOrFail($id);
+        
+        $item->update([
+            'status' => 'CLOSED',
+            'finished_at' => now()
+        ]);
+        
+        return redirect()->route('sodc.sessions.index')->with('success', 'Sesi ' . $item->session_code . ' berhasil di-CLOSE! Petugas tidak bisa lagi mengakses sesi ini.');
+    }
 
     public function update(Request $request, $id)
     {

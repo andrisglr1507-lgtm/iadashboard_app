@@ -59,10 +59,9 @@
                     <td style='border-bottom: 1px solid #f1f5f9;'>{{ $row->sku_name }}</td>
                     <td style='border-bottom: 1px solid #f1f5f9;'>{{ $row->barcode ?: '-' }}</td>
                     <td style='border-bottom: 1px solid #f1f5f9;'>
-                        <div style="font-weight: 600; color: #334155; font-size: 0.9rem;">{{ $row->packname ?: '-' }}</div>
-                        <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">
-                            Isi: <span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{{ $row->uom ?: 1 }} Pcs</span>
-                        </div>
+                        <span style="background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">
+                            Isi {{ $row->uom ?: 1 }} Pcs / {{ $row->packname ?: 'Karton' }}
+                        </span>
                     </td>
                     <td style='border-bottom: 1px solid #f1f5f9;'>
                         <div style="font-weight: 600; color: #334155;">{{ $row->principal ?: '-' }}</div>

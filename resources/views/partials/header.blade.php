@@ -1,4 +1,4 @@
-<header class="global-header" style="display: flex; justify-content: space-between; align-items: center; padding: 0 24px 0 0; height: 70px; background: #EDEDED; border-bottom: 1px solid #D9DEE4; flex-shrink: 0; z-index: 1050;">
+<header class="global-header" style="display: none; justify-content: space-between; align-items: center; padding: 0 24px 0 0; height: 70px; background: #EDEDED; border-bottom: 1px solid #D9DEE4; flex-shrink: 0; z-index: 1050;">
     
     <div style="display: flex; align-items: center;">
         <!-- Toggle Btn -->

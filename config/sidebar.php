@@ -56,7 +56,7 @@ return [
 
     // Opname Management
     [
-        'title' => 'Opname Management',
+        'title' => 'SO Management',
         'icon' => 'fas fa-clipboard-list',
         'submenu' => [
             [
@@ -70,9 +70,14 @@ return [
                 'route' => 'sodc.sessions.index',
             ],
             [
-                'title' => 'Assignments',
+                'title' => 'Assignments (Mode Gudang)',
                 'icon' => 'fas fa-tasks',
                 'route' => 'sodc.assignments.index',
+            ],
+            [
+                'title' => 'Assignments (Mode Lorong)',
+                'icon' => 'fas fa-tasks',
+                'route' => 'sodc.assignments_bulk.index',
             ],
             [
                 'title' => 'Rekap Bad Stock',
@@ -88,25 +93,26 @@ return [
         'icon' => 'fas fa-chart-bar',
         'submenu' => [
             [
-                'title' => 'Sync Logs (Mobile)',
-                'icon' => 'fas fa-sync-alt',
-                'route' => 'sodc.sync_logs.index',
+                'title' => 'Input SO by Team',
+                'icon' => 'fas fa-fingerprint',
+                'route' => 'sodc.input_by_team.index',
+            ],
+            [
+                'title' => 'Tracking Opname',
+                'icon' => 'fas fa-map-marker-alt',
+                'route' => 'sodc.tracking.index',
             ],
             [
                 'title' => 'Count Results',
                 'icon' => 'fas fa-check-double',
                 'route' => 'sodc.results.index',
             ],
-            [
-                'title' => 'Variance & Approvals',
-                'icon' => 'fas fa-file-signature',
-                'route' => 'sodc.approvals.index',
-            ],
         ],
     ],
 
 
     // Header for Branch
+    /*
     [
         'header' => 'Stock Opname CSAN',
     ],
@@ -131,7 +137,7 @@ return [
                 'route' => 'sodc.approvals.index',
             ],
         ],
-    ],
+    ],*/
 
     
 

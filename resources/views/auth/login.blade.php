@@ -27,12 +27,8 @@
         }
 
         body {
-            background-color: var(--bg-body);
-            background-image: 
-                radial-gradient(at 0% 0%, hsla(199,94%,85%,1) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, hsla(210,100%,89%,1) 0px, transparent 50%);
-            background-repeat: no-repeat;
-            background-size: cover;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 110) 100%), 
+                        url('{{ asset("images/background_login.png") }}') center center / cover no-repeat;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -174,10 +170,10 @@
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <div class="login-brand">
-                    <i class="fas fa-box-open"></i>
+                <div class="login-brand" style="background: transparent; box-shadow: none;">
+                    <img src="{{ asset('images/icon_app_ia.png') }}" alt="IA Logo" style="width: 56px; height: 56px; object-fit: contain;">
                 </div>
-                <h1>CSA Dashboard</h1>
+                <h1>IA CSA Dashboard</h1>
                 <p>Silakan masuk ke akun operasional Anda</p>
             </div>
 
