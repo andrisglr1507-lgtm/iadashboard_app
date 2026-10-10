@@ -23,6 +23,23 @@
     $recountProgress = $recountProgress ?? 0;
 @endphp
 
+@if(isset($session) && $session)
+<div class="content-panel" style="padding: 16px 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; border-left: 4px solid var(--phoenix-primary);">
+    <div>
+        <h4 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--phoenix-dark); letter-spacing: 0.5px;"><i class="fas fa-satellite-dish text-primary me-2"></i> Realtime Dashboard</h4>
+        <p style="margin: 4px 0 0; font-size: 0.85rem; color: var(--phoenix-text-muted);">Data di bawah mengacu pada Sesi Aktif: <strong style="color: var(--phoenix-dark);">{{ $session->session_code }}</strong> (Cabang: {{ $session->branch_id }})</p>
+    </div>
+    <div style="background: rgba(39, 199, 143, 0.1); color: var(--phoenix-success); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(39, 199, 143, 0.2);">
+        <i class="fas fa-circle" style="font-size: 0.5rem; margin-right: 6px; animation: blink 2s infinite;"></i> Live Updates
+    </div>
+</div>
+<style>
+@keyframes blink { 50% { opacity: 0.3; } }
+</style>
+@else
+<div class="alert alert-warning">Tidak ada Sesi Opname yang aktif saat ini. Menampilkan data kosong.</div>
+@endif
+
 <!-- Scorecards Row -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 24px;">
     
@@ -57,7 +74,7 @@
             <div style="height: 100%; background: var(--phoenix-success); width: {{ $pctCounted }}%; border-radius: 4px;"></div>
         </div>
         <div style="margin-top: 8px; font-size: 0.8rem; color: var(--phoenix-text-muted); text-align: right; font-weight: 600;">
-            {{ number_format($pctCounted, 1) }}% Selesai
+            {{ number_format($pctCounted, 0) }}% Selesai
         </div>
     </div>
 
@@ -100,38 +117,37 @@
     <!-- Left Column: Top Variance & Chart -->
     <div style="display: flex; flex-direction: column; gap: 24px;">
         
-        <!-- Top 5 Selisih Chart -->
+        <!-- Leaderboard Tim (Scan Terbanyak) -->
         <div class="content-panel" style="padding: 24px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--phoenix-dark);">10 SKU Selisih Terbesar (Minus)</h3>
-                <button style="background: none; border: none; color: var(--phoenix-text-muted); cursor: pointer;"><i class="fas fa-ellipsis-h"></i></button>
+                <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--phoenix-dark);"><i class="fas fa-trophy text-warning me-2"></i> Leaderboard Petugas (Scan Terbanyak)</h3>
             </div>
             
             <div class="table-container">
                 <table class="premium-table">
                     <thead>
                         <tr>
-                            <th>SKU Code</th>
-                            <th>Product Name</th>
-                            <th style="text-align: right;">System Qty</th>
-                            <th style="text-align: right;">Physical Qty</th>
-                            <th style="text-align: right;">Variance</th>
+                            <th style="width: 60px; text-align: center;">Rank</th>
+                            <th>Nama Petugas</th>
+                            <th>Role / Tim</th>
+                            <th style="text-align: right;">Total Scan Barang</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @if(isset($topVariances) && count($topVariances) > 0)
-                            @foreach($topVariances as $v)
+                        @if(isset($topCounters) && count($topCounters) > 0)
+                            @foreach($topCounters as $index => $c)
                             <tr>
-                                <td style="font-weight: 700; color: var(--phoenix-primary);">{{ $v->referenceDetail->sku_code ?? '-' }}</td>
-                                <td style="font-weight: 600;">{{ Str::limit($v->referenceDetail->product->sku_name ?? 'Unknown Product', 40) }}</td>
-                                <td style="text-align: right;">{{ (float)$v->system_qty }}</td>
-                                <td style="text-align: right;">{{ (float)$v->team_a_qty }}</td>
-                                <td style="text-align: right; color: var(--phoenix-danger); font-weight: 700;">{{ (float)($v->team_a_qty - $v->system_qty) }}</td>
+                                <td style="text-align: center; font-weight: 800; color: {{ $index == 0 ? '#f59e0b' : ($index == 1 ? '#94a3b8' : ($index == 2 ? '#b45309' : 'var(--phoenix-text-muted)')) }}; font-size: 1.2rem;">
+                                    #{{ $index + 1 }}
+                                </td>
+                                <td style="font-weight: 700; color: var(--phoenix-dark);">{{ $c->user->full_name ?? 'Unknown User' }}</td>
+                                <td style="color: var(--phoenix-text-muted); font-size: 0.85rem;">{{ $c->user->role ?? '-' }}</td>
+                                <td style="text-align: right; font-weight: 800; color: var(--phoenix-primary); font-size: 1.1rem;">{{ number_format($c->total_scan) }}</td>
                             </tr>
                             @endforeach
                         @else
                             <tr>
-                                <td colspan="5" style="text-align: center; color: var(--phoenix-text-muted); padding: 24px;">Belum ada data selisih yang ditemukan.</td>
+                                <td colspan="4" style="text-align: center; color: var(--phoenix-text-muted); padding: 24px;">Belum ada data hasil scan yang masuk.</td>
                             </tr>
                         @endif
                     </tbody>
@@ -182,41 +198,29 @@
             </div>
         </div>
 
-        <!-- Recent Activity Log (Dummy) -->
+        <!-- Recent Activity Log (Realtime) -->
         <div class="content-panel" style="padding: 24px;">
-            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--phoenix-dark); margin-bottom: 24px;">Aktivitas Terkini</h3>
+            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--phoenix-dark); margin-bottom: 24px;"><i class="fas fa-bolt text-warning me-2"></i> Aktivitas Scan Terkini</h3>
             
             <div style="display: flex; flex-direction: column; gap: 16px;">
-                <div style="display: flex; gap: 12px;">
-                    <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--phoenix-success); margin-top: 6px;"></div>
-                    <div>
-                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--phoenix-dark);">Andri Setiawan (Tim A)</div>
-                        <div style="font-size: 0.75rem; color: var(--phoenix-text-muted);">Mensubmit hasil hitung Bin A-01-01</div>
-                        <div style="font-size: 0.7rem; color: #a0aec0; margin-top: 4px;">2 menit lalu</div>
+                @if(isset($recentActivities) && count($recentActivities) > 0)
+                    @foreach($recentActivities as $act)
+                    <div style="display: flex; gap: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
+                        <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--phoenix-success); margin-top: 5px; flex-shrink: 0;"></div>
+                        <div>
+                            <div style="font-size: 0.85rem; font-weight: 700; color: var(--phoenix-dark);">{{ $act->user->full_name ?? 'Sistem' }} <span style="font-weight: normal; color: #64748b; font-size: 0.75rem;">({{ $act->team_id ?? 'N/A' }})</span></div>
+                            <div style="font-size: 0.75rem; color: var(--phoenix-text-muted); margin-top: 2px;">Melakukan scan untuk <strong>{{ $act->referenceDetail->sku_code ?? ($act->referenceDetail->product->sku_code ?? '?') }}</strong> di lokasi <strong>{{ $act->referenceDetail->bin_code ?? '?' }}</strong> dengan qty <span style="font-weight: 700; color: var(--phoenix-primary);">{{ (float)$act->count_qty }}</span></div>
+                            <div style="font-size: 0.7rem; color: #a0aec0; margin-top: 4px;"><i class="far fa-clock me-1"></i>{{ $act->created_at->diffForHumans() }}</div>
+                        </div>
                     </div>
-                </div>
-                
-                <div style="display: flex; gap: 12px;">
-                    <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--phoenix-warning); margin-top: 6px;"></div>
-                    <div>
-                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--phoenix-dark);">Budi (Tim Recount)</div>
-                        <div style="font-size: 0.75rem; color: var(--phoenix-text-muted);">Memulai Recount 1 untuk SKU 01-001A</div>
-                        <div style="font-size: 0.7rem; color: #a0aec0; margin-top: 4px;">15 menit lalu</div>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 12px;">
-                    <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--phoenix-danger); margin-top: 6px;"></div>
-                    <div>
-                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--phoenix-dark);">Sistem Auto-Dispatch</div>
-                        <div style="font-size: 0.75rem; color: var(--phoenix-text-muted);">Mendistribusikan 12 tugas Recount baru</div>
-                        <div style="font-size: 0.7rem; color: #a0aec0; margin-top: 4px;">1 jam lalu</div>
-                    </div>
-                </div>
+                    @endforeach
+                @else
+                    <div style="text-align: center; padding: 20px; color: var(--phoenix-text-muted); font-size: 0.85rem;">Belum ada aktivitas.</div>
+                @endif
             </div>
             
             <div style="margin-top: 16px; text-align: center;">
-                <a href="#" style="font-size: 0.8rem; font-weight: 700; color: var(--phoenix-primary); text-decoration: none;">Lihat Semua Aktivitas</a>
+                <a href="#" style="font-size: 0.8rem; font-weight: 700; color: var(--phoenix-primary); text-decoration: none;">(Hanya menampilkan 7 scan terakhir)</a>
             </div>
         </div>
 

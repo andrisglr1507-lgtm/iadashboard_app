@@ -47,34 +47,40 @@ class DashboardController extends Controller
             $teamACount = OpnameResult::where('session_id', $session->id)->whereNotNull('team_a_qty')->count();
             $teamBCount = OpnameResult::where('session_id', $session->id)->whereNotNull('team_b_qty')->count();
             
-            $teamAProgress = $totalSku > 0 ? ($teamACount / $totalSku) * 100 : 0;
-            $teamBProgress = $totalSku > 0 ? ($teamBCount / $totalSku) * 100 : 0;
+            $teamAProgress = $totalSku > 0 ? round(($teamACount / $totalSku) * 100) : 0;
+            $teamBProgress = $totalSku > 0 ? round(($teamBCount / $totalSku) * 100) : 0;
 
             // Progress Recount
             $totalRecountAssignments = OpnameRecountAssignment::where('session_id', $session->id)->count();
             $doneRecountAssignments = OpnameRecountAssignment::where('session_id', $session->id)
                 ->where('status', '!=', 'PENDING')
                 ->count();
-            $recountProgress = $totalRecountAssignments > 0 ? ($doneRecountAssignments / $totalRecountAssignments) * 100 : 0;
+            $recountProgress = $totalRecountAssignments > 0 ? round(($doneRecountAssignments / $totalRecountAssignments) * 100) : 0;
 
-            // Top Variances (Selisih Terbesar antara System dan Team A)
-            // Pakai Raw query sederhana untuk sqlite/mysql compatibility
-            $topVariances = OpnameResult::with(['referenceDetail.product'])
+            // Top Variances diganti jadi Top Counters (Tim Teraktif)
+            $topCounters = OpnameCount::with('user')
+                ->selectRaw('counted_by, count(*) as total_scan')
                 ->where('session_id', $session->id)
-                ->whereNotNull('team_a_qty')
-                ->get()
-                ->map(function ($item) {
-                    $item->diff = abs((float)$item->system_qty - (float)$item->team_a_qty);
-                    return $item;
-                })
-                ->sortByDesc('diff')
-                ->take(10);
+                ->groupBy('counted_by')
+                ->orderByDesc('total_scan')
+                ->take(5)
+                ->get();
+                
+            // Aktivitas Terkini (Realtime Recent Scans)
+            $recentActivities = OpnameCount::with(['user', 'referenceDetail.product'])
+                ->where('session_id', $session->id)
+                ->orderBy('created_at', 'desc')
+                ->take(7)
+                ->get();
+        } else {
+            $topCounters = collect();
+            $recentActivities = collect();
         }
 
         return view('dashboard.index', compact(
             'totalSku', 'skuCounted', 'skuVariance',
             'teamAProgress', 'teamBProgress', 'recountProgress',
-            'topVariances', 'session'
+            'topCounters', 'recentActivities', 'session'
         ));
     }
     

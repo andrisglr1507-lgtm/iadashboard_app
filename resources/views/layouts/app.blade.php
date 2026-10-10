@@ -14,6 +14,9 @@
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     
+    <!-- Toastify CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    
     @vite(['resources/css/app.css']) {{-- Jika pakai Vite --}}
     @stack('styles')
 </head>
@@ -33,6 +36,71 @@
     </div>
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Toastify JS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <!-- Global Flash Message Handler -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            @if(session('success'))
+                Toastify({
+                    text: "{!! addslashes(session('success')) !!}",
+                    duration: 3000,
+                    close: true,
+                    gravity: "top",
+                    position: "right",
+                    stopOnFocus: true,
+                    style: {
+                        background: "linear-gradient(135deg, #1ABB9C, #138D75)",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 12px rgba(26, 187, 156, 0.2)",
+                        fontSize: "0.85rem",
+                        fontWeight: "600",
+                        fontFamily: "'Inter', sans-serif"
+                    }
+                }).showToast();
+            @endif
+
+            @if(session('error'))
+                Toastify({
+                    text: "{!! addslashes(session('error')) !!}",
+                    duration: 4000,
+                    close: true,
+                    gravity: "top",
+                    position: "right",
+                    stopOnFocus: true,
+                    style: {
+                        background: "linear-gradient(135deg, #E74C3C, #C0392B)",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 12px rgba(231, 76, 60, 0.2)",
+                        fontSize: "0.85rem",
+                        fontWeight: "600",
+                        fontFamily: "'Inter', sans-serif"
+                    }
+                }).showToast();
+            @endif
+            
+            @if(session('info'))
+                Toastify({
+                    text: "{!! addslashes(session('info')) !!}",
+                    duration: 3000,
+                    close: true,
+                    gravity: "top",
+                    position: "right",
+                    stopOnFocus: true,
+                    style: {
+                        background: "linear-gradient(135deg, #3498DB, #2980B9)",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 12px rgba(52, 152, 219, 0.2)",
+                        fontSize: "0.85rem",
+                        fontWeight: "600",
+                        fontFamily: "'Inter', sans-serif"
+                    }
+                }).showToast();
+            @endif
+        });
+    </script>
     
     @vite(['resources/js/app.js'])
     @stack('scripts')
