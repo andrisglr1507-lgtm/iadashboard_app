@@ -240,8 +240,142 @@ class CountResultController extends Controller
                 ]
             );
         }
+    }
 
-        // --- AUTO DISPATCH RECOUNT LOGIC ---
+    /**
+     * Run reconciliation for a SINGLE bin reference detail (Called by API on submit)
+     */
+    public static function syncSingleBin($sessionId, $refDetailId)
+    {
+        $session = OpnameSession::find($sessionId);
+        if (!$session) return;
+
+        $ref = OpnameReferenceDetail::find($refDetailId);
+        if (!$ref || $ref->reference_id != $session->reference_id) return;
+
+        $counts = OpnameCount::where('session_id', $sessionId)
+            ->where('reference_detail_id', $refDetailId)
+            ->whereIn('count_status', ['SUBMITTED', 'LOCKED'])
+            ->orderBy('count_sequence')
+            ->orderBy('id')
+            ->get();
+
+        if ($counts->isEmpty()) {
+            $existingResult = OpnameResult::where('session_id', $sessionId)
+                ->where('reference_detail_id', $refDetailId)
+                ->first();
+            if ($existingResult && $existingResult->result_status != 'UNCOUNTED') {
+                if ((float)$ref->system_qty == 0) {
+                    $existingResult->delete();
+                    $ref->delete();
+                } else {
+                    $existingResult->update([
+                        'team_a_qty' => null, 'team_b_qty' => null,
+                        'recount1_qty' => null, 'recount2_qty' => null,
+                        'final_qty' => null, 'result_status' => 'UNCOUNTED',
+                        'variance_qty' => null, 'variance_percentage' => null,
+                    ]);
+                }
+            }
+            return;
+        }
+
+        $seq1 = $counts->where('count_sequence', 1)->values();
+        $seq2 = $counts->where('count_sequence', 2)->values();
+        $seq3 = $counts->where('count_sequence', 3)->values();
+        $seq4 = $counts->where('count_sequence', 4)->values();
+
+        $teamA = $seq1->get(0);
+        $teamB = $seq1->get(1);
+        $r1 = $seq2->first();
+        $r2 = $seq3->first();
+        $r3 = $seq4->first();
+
+        $systemQty = (float) $ref->system_qty;
+        $aQty = $teamA ? (float) $teamA->count_qty : null;
+        $bQty = $teamB ? (float) $teamB->count_qty : null;
+        $r1Qty = $r1 ? (float) $r1->count_qty : null;
+        $r2Qty = $r2 ? (float) $r2->count_qty : null;
+        $r3Qty = $r3 ? (float) $r3->count_qty : null;
+
+        $status = 'UNCOUNTED';
+        $finalQty = 0;
+
+        if ($session->mode == 'DOUBLE') {
+            if ($r3Qty !== null) {
+                $status = 'FINAL'; $finalQty = $r3Qty;
+            } else if ($aQty !== null && $bQty !== null) {
+                if ($aQty == $bQty) {
+                    $status = 'MATCH'; $finalQty = $aQty;
+                } else {
+                    $status = 'RECOUNT';
+                    if ($r1Qty !== null) {
+                        if ($r1Qty == $aQty || $r1Qty == $bQty || $r1Qty == $systemQty) {
+                            $status = 'FINAL'; $finalQty = $r1Qty;
+                        } else {
+                            $status = 'RECOUNT';
+                            if ($r2Qty !== null) {
+                                $status = 'FINAL'; $finalQty = $r2Qty;
+                            }
+                        }
+                    }
+                }
+            } else if ($aQty !== null && $bQty === null) {
+                $status = 'WAITING B';
+            } else if ($aQty === null && $bQty !== null) {
+                $status = 'WAITING A';
+            }
+        } else if ($session->mode == 'SINGLE') {
+            if ($aQty !== null) {
+                if ($aQty == $systemQty) {
+                    $status = 'MATCH'; $finalQty = $aQty;
+                } else {
+                    $status = 'RECOUNT';
+                    if ($r1Qty !== null) {
+                        $status = 'FINAL'; $finalQty = $r1Qty;
+                    }
+                }
+            }
+        } else if ($session->mode == 'RECORD_ONLY') {
+            if ($aQty !== null) {
+                $status = 'FINAL'; $finalQty = $aQty;
+            }
+        }
+
+        $varianceQty = 0; $variancePct = 0;
+        if (in_array($status, ['MATCH', 'FINAL', 'APPROVED'])) {
+            $varianceQty = $finalQty - $systemQty;
+            if ($systemQty > 0) {
+                $variancePct = ($varianceQty / $systemQty) * 100;
+            } else {
+                $variancePct = $varianceQty > 0 ? 100 : 0;
+            }
+        }
+
+        OpnameResult::updateOrCreate(
+            ['session_id' => $sessionId, 'reference_detail_id' => $refDetailId],
+            [
+                'result_uuid' => Str::uuid(),
+                'system_qty' => $systemQty,
+                'team_a_qty' => $aQty, 'team_b_qty' => $bQty,
+                'recount1_qty' => $r1Qty, 'recount2_qty' => $r2Qty, 'recount3_qty' => $r3Qty,
+                'final_qty' => in_array($status, ['MATCH', 'FINAL', 'APPROVED']) ? $finalQty : null,
+                'variance_qty' => $varianceQty, 'variance_percentage' => $variancePct,
+                'result_status' => $status
+            ]
+        );
+    }
+
+    // --- AUTO DISPATCH RECOUNT LOGIC ---
+    public function syncResults(Request $request)
+    {
+        $activeSessionId = session('active_opname_session_id');
+        if (!$activeSessionId) return redirect()->back()->with('error', 'Pilih Sesi Opname terlebih dahulu!');
+
+        $this->runReconciliation($activeSessionId);
+
+        // Auto Dispatch Recount Task
+        $sessionId = $activeSessionId;
         $teamRecount = \App\Models\OpnameUserArea::where('session_id', $sessionId)
             ->where('team_role', 'TEAM_RECOUNT')
             ->pluck('user_id')

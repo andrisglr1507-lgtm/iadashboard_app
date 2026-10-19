@@ -19,7 +19,7 @@
         <span id="headerBrandText" style="font-weight: 500; font-size: 1.25rem; color: #ECF0F1; letter-spacing: 0.5px; transition: opacity 0.2s;">Dashboard</span>
     </div>
 
-    <div class="sidebar-menu" style="flex-grow: 1; overflow-y: auto;">
+    <div class="sidebar-menu" style="flex-grow: 1; overflow-y: auto; overflow-x: hidden;">
         <ul class="menu-list" id="menuList">
             @foreach(config('sidebar', []) as $item)
                 @include('partials.menu-item', ['item' => $item])
@@ -37,22 +37,45 @@
             <span class="menu-text" id="toggleText" style="margin-left: 8px; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">Collapse Sidebar</span>
         </div>
 
+
+        <!-- Account user -->
         @auth
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;" class="header-text">
-            <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
-                <div style="width: 32px; height: 32px; border-radius: 50%; background: #1ABB9C; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; flex-shrink: 0;">
-                    {{ strtoupper(substr(Auth::user()->full_name ?? Auth::user()->username, 0, 1)) }}
+        <div class="dropdown dropup" style="width: 100%;">
+            <div data-bs-toggle="dropdown" aria-expanded="false" style="display: flex; align-items: center; justify-content: flex-start; gap: 8px; cursor: pointer; padding: 4px; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                <!-- Avatar -->
+                <div style="width: 32px; display: flex; justify-content: center; flex-shrink: 0;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #1ABB9C; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem;">
+                        {{ strtoupper(substr(Auth::user()->full_name ?? Auth::user()->username, 0, 1)) }}
+                    </div>
                 </div>
-                <div style="display: flex; flex-direction: column; overflow: hidden;">
+                <!-- User Details (Hidden when collapsed) -->
+                <div class="header-text" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
                     <span style="font-size: 0.8rem; font-weight: 700; color: #ECF0F1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ Auth::user()->full_name ?? Auth::user()->username }}</span>
+                    <!-- <span style="font-size: 0.7rem; color: #8ba0b5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ Auth::user()->role ?? 'Administrator' }}</span> -->
                 </div>
             </div>
-            <form action="{{ route('logout') }}" method="POST" style="margin: 0; flex-shrink: 0;">
-                @csrf
-                <button type="submit" style="background: none; border: none; color: #8ba0b5; cursor: pointer; padding: 4px; transition: color 0.2s;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#8ba0b5'" title="Logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </form>
+            
+            <ul class="dropdown-menu dropdown-menu-dark shadow" style="min-width: 200px; border-radius: 8px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); background-color: var(--phoenix-dark);">
+                <li>
+                    <a class="dropdown-item d-flex align-items-center py-2" href="#" style="gap: 12px; font-size: 0.85rem; color: #ECF0F1;">
+                        <i class="fas fa-user text-center" style="width: 16px;"></i> My Profile
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item d-flex align-items-center py-2" href="#" style="gap: 12px; font-size: 0.85rem; color: #ECF0F1;">
+                        <i class="fas fa-key text-center" style="width: 16px;"></i> Change Password
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider" style="border-color: rgba(255,255,255,0.1);"></li>
+                <li>
+                    <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
+                        @csrf
+                        <button type="submit" class="dropdown-item d-flex align-items-center py-2 text-danger" style="gap: 12px; font-size: 0.85rem; background: transparent; border: none; width: 100%; text-align: left;">
+                            <i class="fas fa-sign-out-alt text-center" style="width: 16px;"></i> Log Out
+                        </button>
+                    </form>
+                </li>
+            </ul>
         </div>
         @endauth
     </div>
@@ -79,21 +102,6 @@
                 toggleIcon.classList.remove('fa-chevron-left');
                 toggleIcon.classList.add('fa-chevron-right');
                 
-                if (brandText) {
-                    brandText.style.opacity = '0';
-                    brandText.style.display = 'none';
-                }
-                
-                const toggleText = document.getElementById('toggleText');
-                if (toggleText) {
-                    toggleText.style.opacity = '0';
-                    toggleText.style.display = 'none';
-                }
-
-                document.querySelectorAll('.header-text').forEach(el => {
-                    el.style.display = 'none';
-                });
-                
                 // Tutup semua submenu
                 document.querySelectorAll('.submenu').forEach(sub => {
                     sub.classList.remove('open');
@@ -111,22 +119,6 @@
                     toggleIcon.classList.remove('fa-chevron-left');
                     toggleIcon.classList.add('fa-chevron-right');
                     
-                    if (brandText) {
-                        brandText.style.opacity = '0';
-                        setTimeout(() => { if (sidebar.classList.contains('collapsed')) brandText.style.display = 'none'; }, 200);
-                    }
-                    
-                    const toggleText = document.getElementById('toggleText');
-                    if (toggleText) {
-                        toggleText.style.opacity = '0';
-                        setTimeout(() => { if (sidebar.classList.contains('collapsed')) toggleText.style.display = 'none'; }, 200);
-                    }
-                    
-                    document.querySelectorAll('.header-text').forEach(el => {
-                        el.style.opacity = '0';
-                        setTimeout(() => { if (sidebar.classList.contains('collapsed')) el.style.display = 'none'; }, 200);
-                    });
-
                     // Tutup semua submenu saat collapsed
                     document.querySelectorAll('.submenu').forEach(sub => {
                         sub.classList.remove('open');
@@ -134,22 +126,6 @@
                 } else {
                     toggleIcon.classList.remove('fa-chevron-right');
                     toggleIcon.classList.add('fa-chevron-left');
-                    
-                    if (brandText) {
-                        brandText.style.display = 'block';
-                        setTimeout(() => brandText.style.opacity = '1', 10);
-                    }
-
-                    const toggleText = document.getElementById('toggleText');
-                    if (toggleText) {
-                        toggleText.style.display = 'block';
-                        setTimeout(() => toggleText.style.opacity = '1', 10);
-                    }
-
-                    document.querySelectorAll('.header-text').forEach(el => {
-                        el.style.display = 'block';
-                        setTimeout(() => el.style.opacity = '1', 10);
-                    });
                 }
             });
         }

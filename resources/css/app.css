@@ -70,7 +70,7 @@ body {
 }
 
 .sidebar.collapsed {
-    width: 72px;
+    width: 64px;
 }
 
 .sidebar::-webkit-scrollbar {
@@ -86,6 +86,24 @@ body {
     border-radius: 4px;
 }
 
+/* Sidebar Menu custom scrollbar for dark background */
+.sidebar-menu::-webkit-scrollbar {
+    width: 5px;
+}
+
+.sidebar-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
 /* Brand Area */
 .sidebar-brand {
     display: flex;
@@ -98,7 +116,12 @@ body {
 
 .sidebar.collapsed .sidebar-brand {
     justify-content: center;
-    padding: 0 8px;
+    padding: 0;
+}
+
+/* Adjust brand container padding when collapsed */
+.sidebar.collapsed #headerBrandContainer {
+    padding-left: 14px !important;
 }
 
 .brand-icon {
@@ -106,17 +129,22 @@ body {
     color: var(--phoenix-primary);
 }
 
+.sidebar.collapsed .brand-name {
+    opacity: 0;
+    width: 0;
+    pointer-events: none;
+}
+
 .brand-name {
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     font-weight: 400;
     font-size: 1.25rem;
     color: #ECF0F1;
-    /* Light text for brand */
     white-space: nowrap;
     letter-spacing: 0.5px;
-}
-
-.sidebar.collapsed .brand-name {
-    display: none;
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: middle;
 }
 
 /* Toggle Button */
@@ -168,20 +196,32 @@ body {
     padding: 13px 15px;
     border-radius: 0;
     color: #E7E7E7;
-    /* Gentelella light text */
     font-weight: 500;
     font-size: 0.85rem;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
     text-decoration: none;
+    position: relative;
+    z-index: 1;
 }
 
-.menu-link i:first-child {
+.menu-link i:first-child,
+.menu-link svg:first-child {
     width: 26px;
+    height: 22px;
+    text-align: center;
     font-size: 1.1rem;
     color: #E7E7E7;
-    transition: color 0.2s ease;
+    stroke: currentColor;
+    transition: color 0.3s ease;
+    flex-shrink: 0;
+}
+
+.menu-text {
+    flex-grow: 1;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 1;
 }
 
 .menu-link:hover {
@@ -190,8 +230,10 @@ body {
     /* Slight lightening */
 }
 
-.menu-link:hover i:first-child {
+.menu-link:hover i:first-child,
+.menu-link:hover svg:first-child {
     color: #ffffff;
+    stroke: #ffffff;
 }
 
 .menu-link {
@@ -250,18 +292,17 @@ body {
     margin: 0;
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease-out;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     background: transparent;
 }
 
 .submenu.open {
     max-height: 500px;
-    transition: max-height 0.35s ease-in;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .submenu .menu-link {
     padding: 9px 15px 9px 50px;
-    /* Indent submenus */
     font-size: 0.8rem;
     font-weight: 400;
     color: rgba(255, 255, 255, 0.75);
@@ -317,15 +358,32 @@ body {
 }
 
 /* Collapsed Sidebar */
+.header-text {
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .sidebar.collapsed .menu-text,
-.sidebar.collapsed .submenu-arrow {
-    display: none;
+.sidebar.collapsed .submenu-arrow,
+.sidebar.collapsed .header-text {
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
 }
 
 .sidebar.collapsed .menu-link {
-    justify-content: center;
+    padding-left: 3px;
+    padding-right: 3px;
+    margin-left: 0;
+    margin-right: 0;
     gap: 0;
-    padding: 10px 0;
+    border-radius: 8px; /* Make the narrower hover box look more like a neat button */
+}
+
+/* Ensure Toggle and Avatar remain perfectly centered in 64px (16px padding + 0 inner padding = 16px start + 16px half-width = 32px center) */
+.sidebar.collapsed #toggleSidebarBtn,
+.sidebar.collapsed [data-bs-toggle="dropdown"] {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
 }
 
 .sidebar.collapsed .submenu {

@@ -5,9 +5,10 @@ return [
     [
         'header' => 'Dash',
     ],
+
     [
         'title' => 'Dashboard',
-        'icon' => 'fas fa-tachometer-alt',
+        'icon' => 'ti ti-home-stats',
         'route' => 'dashboard',
     ],
 
@@ -19,36 +20,36 @@ return [
     // Master Data
     [
         'title' => 'Master Data',
-        'icon' => 'fas fa-database',
+        'icon' => 'ri-database-2-line',
         'submenu' => [
             [
                 'title' => 'Branches',
-                'icon' => 'fas fa-code-branch',
+                'icon' => 'ri-git-branch-line',
                 'route' => 'sodc.branches.index', // placeholder route
             ],
             [
                 'title' => 'Warehouses',
-                'icon' => 'fas fa-warehouse',
+                'icon' => 'ri-building-line',
                 'route' => 'sodc.warehouses.index', // placeholder route
             ],
             [
                 'title' => 'Bins Location',
-                'icon' => 'fas fa-box-open',
+                'icon' => 'ri-archive-line',
                 'route' => 'sodc.bins.index', // placeholder route
             ],
             [
                 'title' => 'Products',
-                'icon' => 'fas fa-boxes',
+                'icon' => 'ri-box-3-line',
                 'route' => 'sodc.products.index', // placeholder route
             ],
             [
                 'title' => 'Teams & Members',
-                'icon' => 'fas fa-users-cog',
+                'icon' => 'ri-team-line',
                 'route' => 'sodc.teams.index', // placeholder route
             ],
             [
                 'title' => 'User Management',
-                'icon' => 'fas fa-user-shield',
+                'icon' => 'ri-user-settings-line',
                 'route' => 'users.index',
             ],
         ],
@@ -57,31 +58,31 @@ return [
     // Opname Management
     [
         'title' => 'SO Management',
-        'icon' => 'fas fa-clipboard-list',
+        'icon' => 'ti ti-clipboard-list',
         'submenu' => [
             [
                 'title' => 'WMS References',
-                'icon' => 'fas fa-file-download',
+                'icon' => 'ri-file-download-line',
                 'route' => 'sodc.references.index',
             ],
             [
                 'title' => 'Opname Sessions',
-                'icon' => 'fas fa-calendar-check',
+                'icon' => 'ri-calendar-check-line',
                 'route' => 'sodc.sessions.index',
             ],
             [
                 'title' => 'Assignments (Mode Gudang)',
-                'icon' => 'fas fa-tasks',
+                'icon' => 'ri-task-line',
                 'route' => 'sodc.assignments.index',
             ],
             [
                 'title' => 'Assignments (Mode Lorong)',
-                'icon' => 'fas fa-tasks',
+                'icon' => 'ri-route-line',
                 'route' => 'sodc.assignments_bulk.index',
             ],
             [
                 'title' => 'Rekap Bad Stock',
-                'icon' => 'fas fa-dumpster',
+                'icon' => 'ri-delete-bin-5-line',
                 'route' => 'sodc.bad_stock.index',
             ]
         ],
@@ -90,21 +91,21 @@ return [
     // Opname Results
     [
         'title' => 'Results & Variance',
-        'icon' => 'fas fa-chart-bar',
+        'icon' => 'ti ti-file-report',
         'submenu' => [
             [
                 'title' => 'Input SO by Team',
-                'icon' => 'fas fa-fingerprint',
+                'icon' => 'ri-fingerprint-line',
                 'route' => 'sodc.input_by_team.index',
             ],
             [
                 'title' => 'Tracking Opname',
-                'icon' => 'fas fa-map-marker-alt',
+                'icon' => 'ri-map-pin-2-line',
                 'route' => 'sodc.tracking.index',
             ],
             [
                 'title' => 'Count Results',
-                'icon' => 'fas fa-check-double',
+                'icon' => 'ri-checkbox-multiple-line',
                 'route' => 'sodc.results.index',
             ],
         ],

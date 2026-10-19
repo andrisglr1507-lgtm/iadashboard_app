@@ -63,7 +63,7 @@
         <ul class="nav custom-tabs" id="assignmentTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="team-ab-tab" data-bs-toggle="pill" data-bs-target="#team-ab" type="button" role="tab" aria-controls="team-ab" aria-selected="true">
-                    <i class="fas fa-users me-2"></i> Pengaturan Area (Team A & B)
+                    <i class="fas fa-users me-2"></i> Pengaturan Area (Tim Penghitung)
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -95,14 +95,17 @@
             <div style="background: #f1f5f9; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
                 <h5 style="font-size: 1rem; font-weight: 700; margin-bottom: 15px; color: #1e293b;"><i class="fas fa-users"></i> Set Tim untuk Lorong yang Dicentang</h5>
                 <div class="row">
-                    <div class="col-md-5">
-                        <label class="form-label font-weight-bold text-dark mb-2">Team A</label>
+                    <div class="{{ $session->mode == 'DOUBLE' ? 'col-md-5' : 'col-md-10' }}">
+                        <label class="form-label font-weight-bold text-dark mb-2">
+                            {{ $session->mode == 'DOUBLE' ? 'Team A' : 'Tim Penghitung (Single)' }}
+                        </label>
                         <select name="team_a_users[]" class="form-select select2-multiple" multiple="multiple" style="width: 100%;">
                             @foreach($users as $user)
                                 <option value="{{ $user->id }}">{{ $user->full_name }}</option>
                             @endforeach
                         </select>
                     </div>
+                    @if($session->mode == 'DOUBLE')
                     <div class="col-md-5">
                         <label class="form-label font-weight-bold text-dark mb-2">Team B</label>
                         <select name="team_b_users[]" class="form-select select2-multiple" multiple="multiple" style="width: 100%;">
@@ -111,6 +114,7 @@
                             @endforeach
                         </select>
                     </div>
+                    @endif
                     <div class="col-md-2" style="display: flex; align-items: flex-end;">
                         <button type="submit" class="btn btn-primary w-100" style="height: 42px; font-weight: 600;">
                             <i class="fas fa-save"></i> Terapkan
@@ -131,8 +135,10 @@
                             <th>Level Area</th>
                             <th style="text-align: right;">Total Bin</th>
                             <th style="text-align: right;">Total SKU</th>
-                            <th>Current Team A</th>
-                            <th>Current Team B</th>
+                            <th>{{ $session->mode == 'DOUBLE' ? 'Current Team A' : 'Tim Penugasan' }}</th>
+                            @if($session->mode == 'DOUBLE')
+                                <th>Current Team B</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -161,6 +167,7 @@
                                         <span style="color: #94a3b8; font-style: italic; font-size: 0.8rem;">Belum ada</span>
                                     @endif
                                 </td>
+                                @if($session->mode == 'DOUBLE')
                                 <td>
                                     @if(count($teamB) > 0)
                                         @foreach($teamB as $b)
@@ -170,6 +177,7 @@
                                         <span style="color: #94a3b8; font-style: italic; font-size: 0.8rem;">Belum ada</span>
                                     @endif
                                 </td>
+                                @endif
                             </tr>
                         @empty
                             <tr>

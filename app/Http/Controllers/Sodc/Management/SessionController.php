@@ -16,7 +16,13 @@ class SessionController extends Controller
 
     public function create()
     {
-        $references = \App\Models\OpnameReference::orderBy('id', 'desc')->get();
+        $usedReferenceIds = OpnameSession::whereNotNull('reference_id')
+                                ->pluck('reference_id')
+                                ->toArray();
+                                
+        $references = \App\Models\OpnameReference::whereNotIn('id', $usedReferenceIds)
+                        ->orderBy('id', 'desc')
+                        ->get();
         return view('sodc.opname_management.sessions.create', compact('references'));
     }
 

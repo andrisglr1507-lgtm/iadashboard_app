@@ -82,6 +82,13 @@ class TrackingController extends Controller
             }
         }
 
+        if ($request->has('export') && $request->export == 'excel') {
+            $exportData = $query->orderBy('opname_reference_details.bin_code', 'asc')->get();
+            $filename = "Tracking_Opname_" . $session->session_code . "_" . date('Ymd_His') . ".xlsx";
+            
+            return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\TrackingExport($exportData), $filename);
+        }
+
         $data = $query->orderBy('opname_reference_details.bin_code', 'asc')->paginate(15);
 
         // Hitung total untuk summary
@@ -92,7 +99,14 @@ class TrackingController extends Controller
                             ->whereNull('opname_results.id')
                             ->count(),
             'team_a_only' => \App\Models\OpnameResult::where('session_id', $session->id)
-                            ->whereNotNull('team_a_qty')->whereNull('team_b_qty')->count(),
+                            ->whereNotNull('team_a_qty')
+                            ->where(function($q) use ($session) {
+                                if ($session->mode == 'DOUBLE') {
+                                    $q->whereNull('team_b_qty');
+                                }
+                            })
+                            ->whereNotIn('result_status', ['MATCH', 'FINAL'])
+                            ->count(),
             'match_final' => \App\Models\OpnameResult::where('session_id', $session->id)
                             ->whereIn('result_status', ['MATCH', 'FINAL'])->count(),
         ];

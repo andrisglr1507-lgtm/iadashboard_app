@@ -243,28 +243,15 @@ class CountController extends Controller
                 ]);
             }
             
+            // Trigger realtime sync for SINGLE/RECORD_ONLY mode immediately!
+            if ($session->mode == 'SINGLE' || $session->mode == 'RECORD_ONLY' || $targetSequence == 1) {
+                \App\Http\Controllers\Sodc\Result\CountResultController::syncSingleBin($session->id, $refDetailId);
+            }
+
             // Langsung update opname_results jika ini RECOUNT agar laravel web tidak menunjukkan 0
             if ($targetSequence >= 2 && $targetSequence <= 4) {
-                $resultRow = \App\Models\OpnameResult::where('session_id', $session->id)
-                    ->where('reference_detail_id', $refDetailId)
-                    ->first();
-                if ($resultRow) {
-                    if ($targetSequence == 2) {
-                        $resultRow->recount1_qty = $qty;
-                    } else if ($targetSequence == 3) {
-                        $resultRow->recount2_qty = $qty;
-                    } else if ($targetSequence == 4) {
-                        $resultRow->recount3_qty = $qty;
-                        $resultRow->final_qty = $qty;
-                        $resultRow->result_status = 'FINAL';
-                    }
-                    $resultRow->save();
-                    
-                    if ($targetSequence != 4) {
-                        $resultRow->update(['result_status' => 'RECOUNT']);
-                    }
-                }
-
+                // (Ini sudah di-handle oleh syncSingleBin di atas, tapi kita pertahankan logika dispatch Recount di bawahnya)
+                
                 // 🔹 LOGIKA PEMBERSIHAN TUGAS RECOUNT (OPSI 1)
                 if ($currentRecountAssignment) {
                     // 1. Resmikan hitungan milik user ini

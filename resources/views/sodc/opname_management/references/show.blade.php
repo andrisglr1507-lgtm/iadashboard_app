@@ -2,13 +2,13 @@
 @section('title', 'Detail Reference WMS')
 @section('page_title', 'Detail Opname Reference')
 
-@section('page_actions')
-<a href="{{ route('sodc.references.index') }}" style="display: inline-flex; align-items: center; gap: 8px; background: #64748b; color: white; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none;">
-    <i class="fas fa-arrow-left"></i> Kembali
-</a>
-@endsection
-
 @section('content')
+<!--<div style="margin-bottom: 20px;">
+    <a href="{{ route('sodc.references.index') }}" style="display: inline-flex; align-items: center; gap: 8px; background: #64748b; color: white; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none;">
+        <i class="fas fa-arrow-left"></i> Kembali ke Daftar Reference
+    </a>
+</div>
+
 <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px;">
     <!-- Info Dokumen -->
     <div style="flex: 1; min-width: 300px; padding: 24px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(226,232,240,0.8);">
@@ -59,7 +59,8 @@
             <thead>
             <tr>
                 <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Bin Code</th>
-                <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Product Info</th>
+                <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>SKU Code</th>
+                <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Product Name</th>
                 <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Packname & UOM</th>
                 <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>System Qty (Karton & Pcs)</th>
                 <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Batch / Expired</th>
@@ -75,23 +76,20 @@
             @endphp
             <tr>
                 <td style='padding: 12px; border-bottom: 1px solid #f1f5f9; font-weight: bold; color: #0369a1;'>{{ $row->bin_code }}</td>
-                <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>
-                    <div style="font-weight: bold; color: #0f172a;">{{ $row->sku_code }}</div>
-                    <div style="font-size: 0.85rem; color: #64748b;">{{ $row->product ? $row->product->sku_name : '-' }}</div>
+                <td style='padding: 12px; border-bottom: 1px solid #f1f5f9; font-family: monospace; font-weight: 600; color: #0f172a;'>
+                    {{ $row->sku_code }}
+                </td>
+                <td style='padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #475569;'>
+                    {{ $row->product ? $row->product->sku_name : '-' }}
                 </td>
                 <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>
-                    <div style="font-weight: 600; color: #334155; font-size: 0.85rem;">{{ $row->product ? $row->product->packname : '-' }}</div>
-                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">
-                        Isi: <span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{{ $uomInt }} Pcs</span>
+                    <div style="font-weight: 700; color: #0369a1; font-size: 0.85rem;">
+                        {{ $uomInt }} {{ strtoupper($row->product ? $row->product->packname : 'PCS') }} / KARTON
                     </div>
                 </td>
                 <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>
-                    <div style="font-size: 0.85rem; color: #475569;">
-                        Total: <b style="color: #10b981;">{{ $sysQty }} Pcs</b>
-                    </div>
-                    <div style="margin-top: 5px;">
-                        <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; color: #334155;">{{ $ctn }} Karton</span>
-                        <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; color: #334155;">{{ $pcs }} Pcs</span>
+                    <div style="font-size: 0.85rem; color: #334155; font-weight: 600;">
+                        {{ $ctn }} Karton <span style="color:#cbd5e1; margin:0 4px;">|</span> {{ $pcs }} Pcs <span style="color:#cbd5e1; margin:0 4px;">|</span> <span style="color: #10b981;">Total: {{ $sysQty }} Pcs</span>
                     </div>
                 </td>
                 <td style='padding: 12px; border-bottom: 1px solid #f1f5f9;'>
@@ -108,8 +106,13 @@
     </table>
     </div>
     
-    <div style="margin-top: 20px;" class="pagination-wrapper">
-        {{ $details->links() }}
+    <div class="pagination-wrapper" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="color: #64748b; font-size: 0.85rem;">
+            Menampilkan {{ $details->firstItem() }} sampai {{ $details->lastItem() }} dari total {{ $details->total() }} data
+        </div>
+        <div>
+            {{ $details->appends(request()->query())->links() }}
+        </div>
     </div>
 </div>
 @endsection

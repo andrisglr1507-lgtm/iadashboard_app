@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Input By Team')
-@section('page_title', 'Jejak Input by Team')
+@section('page_title', 'Record Opname by Team')
 
 @push('styles')
 <style>
@@ -60,9 +60,9 @@
                         <td style="padding: 12px 16px; font-family: monospace; font-weight: bold;">
                             {{ $row->bin_code ?? '-' }}
                         </td>
-                        <td style="padding: 12px 16px;">
+                        <td style="padding: 12px 16px; min-width: 250px;">
                             <div style="font-family: monospace; font-weight: 600;">{{ $row->sku_code ?? '-' }}</div>
-                            <div style="font-size: 0.7rem; color: #64748b;">{{ Str::limit($row->sku_name ?? '', 30) }}</div>
+                            <div style="font-size: 0.75rem; color: #64748b; line-height: 1.4; margin-top: 4px;">{{ $row->sku_name ?? '' }}</div>
                         </td>
                         <td style="padding: 12px 16px; text-align: right; font-weight: 800; color: #0f172a;">
                             {{ (float)$row->count_qty }}
@@ -84,8 +84,8 @@
         </table>
     </div>
     
-    <div class="pagination-wrapper" style="margin-top: 20px;">
-        {{ $data->links() }}
+    <div class="pagination-wrapper d-flex justify-content-center" style="margin-top: 20px;">
+        {{ $data->appends(request()->query())->links('pagination::bootstrap-5') }}
     </div>
 </div>
 @endsection

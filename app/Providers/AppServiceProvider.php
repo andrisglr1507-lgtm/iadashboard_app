@@ -31,7 +31,8 @@ class AppServiceProvider extends ServiceProvider
             
             // Check if table exists to prevent crash on migrate/fresh install
             if (Schema::hasTable('opname_sessions')) {
-                $globalSessions = OpnameSession::whereNotIn('status', ['closed'])->orderBy('created_at', 'desc')->get();
+                // Tampilkan semua sesi (termasuk yang CLOSED) agar user bisa melihat histori/tracking sesi lama
+                $globalSessions = OpnameSession::orderBy('created_at', 'desc')->take(20)->get();
             }
             
             $activeSessionId = session('active_opname_session_id');

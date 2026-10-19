@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Tracking Opname')
-@section('page_title', 'Tracking Opname')
+@section('page_title', 'Tracking Opname Status')
 
 @section('content')
 @if(session('success'))
@@ -74,8 +74,10 @@
                     <select name="status" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; background: #fff;" onchange="this.form.submit()">
                         <option value="">Semua Status</option>
                         <option value="BELUM" {{ request('status') == 'BELUM' ? 'selected' : '' }}>Belum Dihitung Sama Sekali</option>
-                        <option value="TEAM_A_ONLY" {{ request('status') == 'TEAM_A_ONLY' ? 'selected' : '' }}>Sudah Dihitung (Hanya Team A)</option>
-                        <option value="TEAM_B_ONLY" {{ request('status') == 'TEAM_B_ONLY' ? 'selected' : '' }}>Sudah Dihitung (Hanya Team B)</option>
+                        <option value="TEAM_A_ONLY" {{ request('status') == 'TEAM_A_ONLY' ? 'selected' : '' }}>Sudah Dihitung (Team A / Single)</option>
+                        @if($session->mode == 'DOUBLE')
+                            <option value="TEAM_B_ONLY" {{ request('status') == 'TEAM_B_ONLY' ? 'selected' : '' }}>Sudah Dihitung (Hanya Team B)</option>
+                        @endif
                         <option value="MISMATCH" {{ request('status') == 'MISMATCH' ? 'selected' : '' }}>Mismatch / Butuh Recount</option>
                         <option value="MATCH_FINAL" {{ request('status') == 'MATCH_FINAL' ? 'selected' : '' }}>Sudah Match / Final</option>
                     </select>
@@ -87,6 +89,10 @@
                         <a href="{{ route('sodc.tracking.index') }}" style="background: #f1f5f9; color: #475569; padding: 8px 16px; border-radius: 6px; text-decoration: none; display: flex; align-items: center; font-weight: 600;">Reset</a>
                     @endif
                 </form>
+
+                <a href="{{ request()->fullUrlWithQuery(['export' => 'excel']) }}" style="background: #10b981; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </a>
             </div>
         </div>
 
@@ -98,7 +104,9 @@
                         <th style="min-width: 250px;">Produk</th>
                         <th>Qty System</th>
                         <th>Input Team A</th>
-                        <th>Input Team B</th>
+                        @if($session->mode == 'DOUBLE')
+                            <th>Input Team B</th>
+                        @endif
                         <th>Final Qty</th>
                         <th>Status Tracking</th>
                     </tr>
@@ -111,9 +119,11 @@
                             
                             if (is_null($row->id_result) && is_null($row->team_a_qty) && is_null($row->team_b_qty)) {
                                 $statusBadge = '<span style="background: #fef2f2; color: #ef4444; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;"><i class="fas fa-times-circle"></i> BELUM DIHITUNG</span>';
-                            } else if (!is_null($row->team_a_qty) && is_null($row->team_b_qty)) {
+                            } else if ($session->mode == 'SINGLE' && !is_null($row->team_a_qty) && !in_array($row->result_status, ['MATCH', 'FINAL'])) {
+                                $statusBadge = '<span style="background: #fffbeb; color: #d97706; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;"><i class="fas fa-clock"></i> ON PROCESS</span>';
+                            } else if ($session->mode == 'DOUBLE' && !is_null($row->team_a_qty) && is_null($row->team_b_qty)) {
                                 $statusBadge = '<span style="background: #fffbeb; color: #d97706; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;"><i class="fas fa-clock"></i> HANYA TEAM A</span>';
-                            } else if (is_null($row->team_a_qty) && !is_null($row->team_b_qty)) {
+                            } else if ($session->mode == 'DOUBLE' && is_null($row->team_a_qty) && !is_null($row->team_b_qty)) {
                                 $statusBadge = '<span style="background: #fffbeb; color: #d97706; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;"><i class="fas fa-clock"></i> HANYA TEAM B</span>';
                             } else {
                                 if (in_array($row->result_status, ['MATCH', 'FINAL'])) {
@@ -124,29 +134,31 @@
                             }
                         @endphp
                     <tr>
-                        <td style="font-weight: 600; color: #334155; font-size: 0.95rem;">
+                        <td style="font-weight: 600; color: #334155; font-size: 0.85rem;">
                             {{ $row->bin_code }}
                         </td>
                         <td>
-                            <div style="font-weight: 600; color: #334155; font-size: 0.9rem;">{{ $row->sku_code }}</div>
-                            <div style="color: #64748b; font-size: 0.85rem; margin-top: 2px;">{{ $row->sku_name ?: 'Unknown Product' }}</div>
+                            <div style="font-weight: 600; color: #334155; font-size: 0.8rem;">{{ $row->sku_code }}</div>
+                            <div style="color: #64748b; font-size: 0.75rem; margin-top: 2px;">{{ $row->sku_name ?: 'Unknown Product' }}</div>
                         </td>
-                        <td style="font-weight: 600; color: #334155;">{{ round($row->system_qty) }}</td>
-                        <td>
+                        <td style="font-weight: 600; color: #334155; font-size: 0.85rem;">{{ round($row->system_qty) }}</td>
+                        <td style="font-size: 0.85rem;">
                             @if(is_null($row->team_a_qty))
                                 <span style="color: #cbd5e1; font-style: italic;">Belum</span>
                             @else
                                 <span style="font-weight: bold; color: #0ea5e9;">{{ round($row->team_a_qty) }}</span>
                             @endif
                         </td>
-                        <td>
-                            @if(is_null($row->team_b_qty))
-                                <span style="color: #cbd5e1; font-style: italic;">Belum</span>
-                            @else
-                                <span style="font-weight: bold; color: #0ea5e9;">{{ round($row->team_b_qty) }}</span>
-                            @endif
-                        </td>
-                        <td>
+                        @if($session->mode == 'DOUBLE')
+                            <td style="font-size: 0.85rem;">
+                                @if(is_null($row->team_b_qty))
+                                    <span style="color: #cbd5e1; font-style: italic;">Belum</span>
+                                @else
+                                    <span style="font-weight: bold; color: #0ea5e9;">{{ round($row->team_b_qty) }}</span>
+                                @endif
+                            </td>
+                        @endif
+                        <td style="font-size: 0.85rem;">
                             @if(!is_null($row->final_qty))
                                 <span style="font-weight: bold; color: #10b981;">{{ round($row->final_qty) }}</span>
                             @else
@@ -159,7 +171,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" style="text-align: center; padding: 40px; color: #64748b;">
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #64748b; font-size: 0.85rem;">
                             <i class="fas fa-inbox fa-3x" style="color: #cbd5e1; margin-bottom: 10px;"></i>
                             <p style="margin: 0;">Tidak ada data ditemukan.</p>
                         </td>

@@ -1,12 +1,48 @@
 @extends('layouts.app')
-@section('title', 'Session')
-@section('page_title', 'Opname Session')
+@section('title', 'Opname Session')
 
-@section('page_actions')
-<a href="{{ route('sodc.sessions.create') }}" style="display: inline-flex; align-items: center; gap: 8px; background: #0ea5e9; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none;">
-    <i class="fas fa-plus"></i> Tambah Session
-</a>
-@endsection
+@php
+    $svgAddSession = file_exists(public_path('svg/Daftar_Team/Opname_session/add_opname_session.svg'))
+        ? file_get_contents(public_path('svg/Daftar_Team/Opname_session/add_opname_session.svg'))
+        : '<i class="fas fa-plus"></i>';
+    $svgPencil = file_exists(public_path('svg/Daftar_Team/Opname_session/pencil.svg'))
+        ? file_get_contents(public_path('svg/Daftar_Team/Opname_session/pencil.svg'))
+        : '<i class="fas fa-edit"></i>';
+    $svgTrash = file_exists(public_path('svg/Daftar_Team/Opname_session/trash-x.svg'))
+        ? file_get_contents(public_path('svg/Daftar_Team/Opname_session/trash-x.svg'))
+        : '<i class="fas fa-trash"></i>';
+@endphp
+
+@push('styles')
+<style>
+    .btn svg {
+        width: 18px;
+        height: 18px;
+        stroke-width: 2;
+        flex-shrink: 0;
+    }
+    .table-action-link,
+    .table-action-delete {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: opacity 0.2s;
+    }
+    .table-action-link:hover,
+    .table-action-delete:hover {
+        opacity: 0.8;
+    }
+    .table-action-link svg,
+    .table-action-delete svg {
+        width: 17px;
+        height: 17px;
+        stroke-width: 2;
+        flex-shrink: 0;
+    }
+</style>
+@endpush
 
 @section('content')
 @if(session('success'))
@@ -15,10 +51,20 @@
     </div>
 @endif
 
-<div style="margin-top: 20px; padding: 24px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(226,232,240,0.8);">
-    <table class="premium-table" style="width: 100%; text-align: left; border-collapse: collapse;">
-        <thead>
-            <tr>
+<div class="content-panel" style="margin-top: 20px;">
+    <div class="panel-header">
+        <h3 class="panel-title">Opname Session</h3>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <a href="{{ route('sodc.sessions.create') }}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+                {!! $svgAddSession !!} Tambah Session
+            </a>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table class="premium-table">
+            <thead>
+                <tr>
                 <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Session Code</th>
                 <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Reference Doc</th>
                 <th style='padding: 12px; border-bottom: 1px solid #e2e8f0;'>Opname Date</th>
@@ -56,10 +102,14 @@
                         <button type="submit" style="background: #ef4444; border:none; color: white; cursor:pointer; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; margin-right: 10px;"><i class="fas fa-stop"></i> CLOSE</button>
                     </form>
                     @endif
-                    <a href="{{ route('sodc.sessions.edit', $row->id) }}" style="color: #0284c7; margin-right: 10px;"><i class="fas fa-edit"></i> Edit</a>
+                    <a href="{{ route('sodc.sessions.edit', $row->id) }}" class="table-action-link" style="color: #0284c7; margin-right: 12px;" title="Edit Session">
+                        {!! $svgPencil !!} Edit
+                    </a>
                     <form action="{{ route('sodc.sessions.destroy', $row->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Hapus data?');">
                         @csrf @method('DELETE')
-                        <button type="submit" style="background:none; border:none; color: #ef4444; cursor:pointer;"><i class="fas fa-trash"></i> Hapus</button>
+                        <button type="submit" class="table-action-delete" style="background:none; border:none; color: #ef4444; cursor:pointer; font-size: inherit; padding: 0;" title="Hapus Session">
+                            {!! $svgTrash !!} Hapus
+                        </button>
                     </form>
                 </td>
             </tr>

@@ -75,12 +75,7 @@
 
 @section('content')
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="h3 mb-0 text-gray-800" style="font-weight: 700; letter-spacing: -0.5px;">Gudang & Lorong Assignments</h2>
-            <p class="text-muted mb-0">Tentukan pengguna mana yang menjadi Team A dan Team B per Lorong/Gudang.</p>
-        </div>
-    </div>
+    
 
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert" style="background: #ecfdf5; color: #065f46;">

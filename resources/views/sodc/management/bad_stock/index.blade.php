@@ -8,6 +8,23 @@
 </a>
 @endsection
 
+@php
+    $svgPrinter = file_exists(public_path('svg/Rekap_Badstock/printer.svg'))
+        ? file_get_contents(public_path('svg/Rekap_Badstock/printer.svg'))
+        : '<i class="fas fa-print"></i>';
+@endphp
+
+@push('styles')
+<style>
+    .btn-print-preview svg {
+        width: 18px;
+        height: 18px;
+        stroke-width: 2;
+        flex-shrink: 0;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="content-panel">
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--phoenix-border-color);">
@@ -37,8 +54,8 @@
                 <option value="5" {{ request('koli') == '5' ? 'selected' : '' }}>Koli 5</option>
             </select>
 
-            <button type="button" onclick="printPreview()" style="background: var(--phoenix-primary); color: white; border: none; padding: 8px 16px; border-radius: var(--phoenix-btn-radius); font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.2s;">
-                <i class="fas fa-print"></i> Print Preview
+            <button type="button" onclick="printPreview()" class="btn-print-preview" style="background: var(--phoenix-primary); color: white; border: none; padding: 8px 16px; border-radius: var(--phoenix-btn-radius); font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.2s;">
+                {!! $svgPrinter !!} Print Preview
             </button>
         </form>
     </div>

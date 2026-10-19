@@ -40,7 +40,13 @@
 @if(isset($item['submenu']) && count($item['submenu']) > 0)
     <li class="menu-item has-sub">
         <div class="menu-link @if($hasActiveChild) active-sub @endif" data-tooltip="{{ $item['title'] }}">
-            <i class="{{ $item['icon'] }}"></i>
+            @if(isset($item['icon']))
+                @if(str_contains($item['icon'], '<svg'))
+                    {!! $item['icon'] !!}
+                @else
+                    <i class="{{ $item['icon'] }}"></i>
+                @endif
+            @endif
             <span class="menu-text">{{ $item['title'] }}</span>
             <i class="fas fa-chevron-right submenu-arrow"></i>
         </div>
@@ -55,8 +61,12 @@
         <a href="{{ isset($item['route']) ? route($item['route']) : '#' }}" 
            class="menu-link @if($isActive) active-page @endif" 
            data-tooltip="{{ $item['title'] }}">
-            @if(!isset($isSub) || !$isSub)
-                <i class="{{ $item['icon'] }}"></i>
+            @if((!isset($isSub) || !$isSub) && isset($item['icon']))
+                @if(str_contains($item['icon'], '<svg'))
+                    {!! $item['icon'] !!}
+                @else
+                    <i class="{{ $item['icon'] }}"></i>
+                @endif
             @endif
             <span class="menu-text">{{ $item['title'] }}</span>
         </a>

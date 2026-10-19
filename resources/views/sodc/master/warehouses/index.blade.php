@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Warehouse')
-@section('page_title', 'Master Warehouse')
+@section('page_title', 'Master Data Warehouse')
 
 @section('content')
 @if(session('success'))

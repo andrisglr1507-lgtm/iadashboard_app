@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Bin')
-@section('page_title', 'Master Bin')
+@section('page_title', 'Master Data Bin Loc')
 
 @section('content')
 @if(session('success'))
