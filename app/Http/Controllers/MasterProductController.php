@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\MasterProduct;
+use App\Models\Product;
 
 class MasterProductController extends Controller
 {
@@ -12,7 +12,7 @@ class MasterProductController extends Controller
      */
     public function index()
     {
-        $principals = MasterProduct::select('principal')
+        $principals = Product::select('principal')
             ->selectRaw('COUNT(*) as total_products')
             ->groupBy('principal')
             ->orderBy('principal', 'asc')
@@ -26,7 +26,7 @@ class MasterProductController extends Controller
      */
     public function show(Request $request, $principal)
     {
-        $query = MasterProduct::query();
+        $query = Product::query();
 
         // If principal is '-' or 'none', fetch products with null or empty principal
         if ($principal === '-' || strtolower($principal) === 'none') {
@@ -40,8 +40,8 @@ class MasterProductController extends Controller
             $principalName = $principal;
         }
 
-        // Order by product name
-        $query->orderBy('product_name', 'asc');
+        // Order by sku_name
+        $query->orderBy('sku_name', 'asc');
 
         // Fetch all products for client-side DataTables
         $products = $query->get();

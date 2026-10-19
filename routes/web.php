@@ -89,6 +89,8 @@ Route::prefix('sodc')->name('sodc.')->group(function () {
     Route::get('products/import', [\App\Http\Controllers\Sodc\Master\ProductController::class, 'showImport'])->name('products.import_page');
     Route::post('products/import', [\App\Http\Controllers\Sodc\Master\ProductController::class, 'import'])->name('products.import');
     Route::post('products/sync-api', [\App\Http\Controllers\Sodc\Master\ProductController::class, 'syncApi'])->name('products.sync_api');
+    Route::get('products/sync-check', [\App\Http\Controllers\Sodc\Master\ProductController::class, 'syncCheck'])->name('products.sync_check');
+    Route::post('products/sync-save', [\App\Http\Controllers\Sodc\Master\ProductController::class, 'syncSave'])->name('products.sync_save');
     Route::get('products/template', [\App\Http\Controllers\Sodc\Master\ProductController::class, 'downloadTemplate'])->name('products.template');
     Route::resource('products', \App\Http\Controllers\Sodc\Master\ProductController::class);
     Route::resource('devices', \App\Http\Controllers\Sodc\Master\DeviceController::class);

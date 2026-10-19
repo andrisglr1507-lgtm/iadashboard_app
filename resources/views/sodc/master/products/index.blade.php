@@ -16,12 +16,9 @@
             <a href="{{ route('sodc.products.import_page') }}" class="btn btn-success">
                 <i class="fas fa-file-excel"></i> Import CSV
             </a>
-            <form action="{{ route('sodc.products.sync_api') }}" method="POST" style="margin: 0;" onsubmit="return confirm('Tarik seluruh data produk dari WMS secara otomatis?');">
-                @csrf
-                <button type="submit" class="btn" style="background: #0ea5e9; color: white; display: flex; align-items: center; gap: 6px;">
-                    <i class="fas fa-sync"></i> Sync API WMS
-                </button>
-            </form>
+            <button type="button" class="btn btn-trigger-sync-wms" style="background: #0ea5e9; color: white; display: flex; align-items: center; gap: 6px;">
+                <i class="fas fa-sync"></i> Sync API WMS
+            </button>
             <a href="{{ route('sodc.products.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Tambah Product
             </a>
@@ -93,4 +90,6 @@
         @endif
     </div>
 </div>
+
+@include('partials.sync-wms-modal')
 @endsection

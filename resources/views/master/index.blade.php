@@ -4,6 +4,10 @@
 @section('page_title', 'Master Product')
 
 @section('page_actions')
+<button type="button" class="btn-trigger-sync-wms" style="display: inline-flex; align-items: center; gap: 8px; background: #0284c7; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
+    <i class="fas fa-sync"></i>
+    <span>Sync API WMS</span>
+</button>
 <button class="btn-import-trigger" id="btnImportTrigger" style="display: inline-flex; align-items: center; gap: 8px; background: #0ea5e9; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
     <i class="fas fa-file-excel"></i>
     <span>Import Excel</span>
@@ -127,6 +131,8 @@
         </div>
     </div>
 </div>
+
+@include('partials.sync-wms-modal')
 @endsection
 
 @push('styles')

@@ -131,7 +131,7 @@ class ProductController extends Controller
         $token = '75|tuN21XD303rLCfLQhRkAEXixfWHwwDoZIrXYzDdd';
         
         try {
-            $response = \Illuminate\Support\Facades\Http::withHeaders([
+            $response = \Illuminate\Support\Facades\Http::withoutVerifying()->withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json'
             ])->timeout(60)->get('https://wms.edrs.co.id/api/mileapp/products');
@@ -169,6 +169,149 @@ class ProductController extends Controller
             }
         } catch (\Exception $e) {
             return redirect()->route('sodc.products.index')->with('error', "Terjadi kesalahan sinkronisasi: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Membandingkan produk dari WMS API dengan produk yang sudah ada di database.
+     * Mengembalikan daftar SKU baru yang belum terdaftar di tabel products.
+     */
+    public function syncCheck()
+    {
+        set_time_limit(300);
+        $token = '75|tuN21XD303rLCfLQhRkAEXixfWHwwDoZIrXYzDdd';
+        
+        try {
+            $response = \Illuminate\Support\Facades\Http::withoutVerifying()->withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json'
+            ])->timeout(60)->get('https://wms.edrs.co.id/api/mileapp/products');
+
+            if (!$response->successful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghubungi API WMS. Status: ' . $response->status()
+                ], 500);
+            }
+
+            $json = $response->json();
+            $products = $json['data'] ?? [];
+
+            // Ambil semua sku_code yang sudah ada di database untuk lookup cepat O(1)
+            $existingSkus = Product::pluck('sku_code')
+                ->filter()
+                ->map(fn($item) => strtoupper(trim($item)))
+                ->flip();
+
+            $newProducts = [];
+            $existingCount = 0;
+
+            foreach ($products as $p) {
+                $sku = trim($p['dataId'] ?? '');
+                if (!$sku) continue;
+
+                $skuUpper = strtoupper($sku);
+                if (!isset($existingSkus[$skuUpper])) {
+                    $uom = isset($p['uom']) && is_numeric($p['uom']) ? (int)$p['uom'] : 1;
+                    if ($uom <= 0) $uom = 1;
+
+                    $newProducts[] = [
+                        'sku_code' => $sku,
+                        'sku_name' => $p['productName'] ?? '',
+                        'barcode' => $p['itemBarcode'] ?: null,
+                        'carton_code' => $p['cartonBarcode'] ?? null,
+                        'packname' => $p['productCategoryCode'] ?: null,
+                        'uom' => $uom,
+                        'principal' => $p['principal'] ?: null,
+                    ];
+                } else {
+                    $existingCount++;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'total_wms' => count($products),
+                'total_db' => $existingSkus->count(),
+                'existing_count' => $existingCount,
+                'new_count' => count($newProducts),
+                'new_products' => $newProducts,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memeriksa data WMS: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Menyimpan hanya produk/SKU baru yang belum ada di database.
+     */
+    public function syncSave(\Illuminate\Http\Request $request)
+    {
+        set_time_limit(300);
+        $items = $request->input('products', []);
+
+        if (empty($items)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada produk baru yang dipilih untuk disimpan.'
+            ], 400);
+        }
+
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            $now = now();
+            $insertData = [];
+            $count = 0;
+
+            // Pastikan double check agar tidak duplikat jika ada simultaneous request
+            $currentExisting = Product::whereIn('sku_code', array_column($items, 'sku_code'))
+                ->pluck('sku_code')
+                ->map(fn($item) => strtoupper(trim($item)))
+                ->flip();
+
+            foreach ($items as $item) {
+                $sku = trim($item['sku_code'] ?? '');
+                if (!$sku || isset($currentExisting[strtoupper($sku)])) {
+                    continue;
+                }
+
+                $insertData[] = [
+                    'sku_code' => $sku,
+                    'sku_name' => $item['sku_name'] ?? '',
+                    'barcode' => $item['barcode'] ?? null,
+                    'carton_code' => $item['carton_code'] ?? null,
+                    'packname' => $item['packname'] ?? null,
+                    'uom' => (int)($item['uom'] ?? 1) ?: 1,
+                    'principal' => $item['principal'] ?? null,
+                    'is_active' => 1,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+                $count++;
+            }
+
+            foreach (array_chunk($insertData, 500) as $chunk) {
+                Product::insert($chunk);
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Berhasil mendownload dan menyimpan {$count} produk baru ke database.",
+                'inserted_count' => $count
+            ]);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan produk: ' . $e->getMessage()
+            ], 500);
         }
     }
 }
