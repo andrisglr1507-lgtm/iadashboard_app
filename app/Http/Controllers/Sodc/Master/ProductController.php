@@ -127,13 +127,14 @@ class ProductController extends Controller
 
     public function syncApi(\Illuminate\Http\Request $request)
     {
+        set_time_limit(300);
         $token = '75|tuN21XD303rLCfLQhRkAEXixfWHwwDoZIrXYzDdd';
         
         try {
             $response = \Illuminate\Support\Facades\Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json'
-            ])->get('https://wms.edrs.co.id/api/mileapp/products');
+            ])->timeout(60)->get('https://wms.edrs.co.id/api/mileapp/products');
 
             if ($response->successful()) {
                 $json = $response->json();
@@ -147,15 +148,16 @@ class ProductController extends Controller
                     $uom = isset($p['uom']) && is_numeric($p['uom']) ? (int)$p['uom'] : 1;
                     if ($uom == 0) $uom = 1;
 
-                    \App\Models\MasterProduct::updateOrCreate(
+                    Product::updateOrCreate(
                         ['sku_code' => $dataId],
                         [
-                            'id_product' => $dataId, // Mengikuti dataId sebagai id_product juga
                             'sku_name' => $p['productName'] ?? '',
                             'barcode' => $p['itemBarcode'] ?: null,
+                            'carton_code' => $p['cartonBarcode'] ?? null,
                             'packname' => $p['productCategoryCode'] ?: null,
                             'uom' => $uom,
                             'principal' => $p['principal'] ?: null,
+                            'is_active' => 1,
                         ]
                     );
                     $count++;
