@@ -391,17 +391,7 @@ body {
 }
 
 .sidebar.collapsed .menu-link:hover::after {
-    content: attr(data-tooltip);
-    position: fixed;
-    left: 80px;
-    background: var(--dark);
-    color: white;
-    font-size: 0.75rem;
-    padding: 6px 12px;
-    border-radius: 6px;
-    white-space: nowrap;
-    z-index: 1000;
-    pointer-events: none;
+    display: none !important;
 }
 
 /* ========== PHOENIX MAIN CONTENT ========== */
