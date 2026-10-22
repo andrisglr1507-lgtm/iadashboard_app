@@ -52,7 +52,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($data as $row)
+                @forelse($data as $row)
                 <tr>
                     <td style='border-bottom: 1px solid #f1f5f9;'>{{ $row->warehouse_id }}</td>
                     <td style='border-bottom: 1px solid #f1f5f9; font-weight: bold;'>{{ $row->bin_code }}</td>
@@ -71,7 +71,16 @@
                         </form>
                     </td>
                 </tr>
-                @endforeach
+                @empty
+                <x-empty-state 
+                    colspan="6"
+                    title="Belum Ada Data Bin"
+                    description="Belum ada data bin lokasi gudang yang tersimpan di sistem."
+                    :actionUrl="route('sodc.bins.create')"
+                    actionText="Tambah Bin Baru"
+                    actionIcon="fas fa-plus"
+                />
+                @endforelse
             </tbody>
         </table>
     </div>

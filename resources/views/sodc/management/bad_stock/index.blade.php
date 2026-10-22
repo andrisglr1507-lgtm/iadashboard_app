@@ -141,11 +141,14 @@
                     </td>
                 </tr>
                 @empty
-                <tr>
-                    <td colspan="15" style="text-align: center; padding: 32px; color: var(--phoenix-text-muted);">
-                        Belum ada data barang rusak atau expired.
-                    </td>
-                </tr>
+                <x-empty-state 
+                    colspan="15"
+                    title="Tidak Ada Data Bad Stock / Expired"
+                    description="Belum ada pencatatan barang rusak atau expired yang sesuai dengan kriteria filter saat ini."
+                    :actionUrl="request()->hasAny(['category', 'item_status', 'koli']) ? route('sodc.bad_stock.index') : null"
+                    actionText="Reset Filter"
+                    actionIcon="fas fa-undo"
+                />
                 @endforelse
             </tbody>
         </table>

@@ -85,12 +85,11 @@
                         </td>
                     </tr>
                 @empty
-                    <tr>
-                        <td colspan="8" class="text-center py-4" style="color: #8ba0b5;">
-                            <i class="fas fa-info-circle" style="font-size: 2rem; margin-bottom: 8px;"></i>
-                            <p>Tidak ada data sesi opname ditemukan.</p>
-                        </td>
-                    </tr>
+                <x-empty-state 
+                    colspan="8"
+                    title="Tidak Ada Sesi Opname"
+                    description="Belum ada sesi stock opname yang dibuat saat ini."
+                />
                 @endforelse
             </tbody>
         </table>

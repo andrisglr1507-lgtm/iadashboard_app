@@ -807,3 +807,146 @@ body {
     padding-top: 2rem;
     padding-bottom: 2rem;
 }
+
+/* ========================================
+   EMPTY STATE COMPONENT STYLES
+   ======================================== */
+.empty-state-row {
+    background: transparent !important;
+}
+
+.empty-state-row:hover {
+    background: transparent !important;
+}
+
+.empty-state-cell {
+    text-align: center !important;
+    padding: 48px 24px !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.empty-state-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 20px;
+    text-align: center;
+    margin: 0 auto;
+    position: relative;
+    max-width: 520px;
+}
+
+.empty-state-compact {
+    padding: 20px 12px;
+}
+
+.empty-state-illustration {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+}
+
+.empty-state-aura {
+    position: absolute;
+    width: 140px;
+    height: 140px;
+    background: radial-gradient(circle, rgba(56, 116, 255, 0.08) 0%, rgba(26, 187, 156, 0.05) 45%, transparent 70%);
+    border-radius: 50%;
+    z-index: 0;
+    pointer-events: none;
+    transform: scale(1.1);
+}
+
+.empty-state-compact .empty-state-aura {
+    width: 90px;
+    height: 90px;
+}
+
+.empty-state-img {
+    position: relative;
+    z-index: 1;
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.06));
+    animation: emptyStateFloat 4s ease-in-out infinite;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.empty-state-box:hover .empty-state-img {
+    transform: translateY(-4px) scale(1.03);
+}
+
+@keyframes emptyStateFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+.empty-state-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--phoenix-dark, #1e293b);
+    margin: 0 0 6px 0;
+    letter-spacing: -0.01em;
+}
+
+.empty-state-compact .empty-state-title {
+    font-size: 0.95rem;
+}
+
+.empty-state-description {
+    font-size: 0.85rem;
+    color: var(--phoenix-text-muted, #64748b);
+    margin: 0 0 16px 0;
+    line-height: 1.5;
+    max-width: 400px;
+}
+
+.empty-state-compact .empty-state-description {
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+}
+
+.empty-state-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+
+.empty-state-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #1ABB9C 0%, #169F85 100%);
+    color: #ffffff !important;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none !important;
+    border: none;
+    box-shadow: 0 3px 10px rgba(26, 187, 156, 0.25);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.empty-state-btn:hover {
+    background: linear-gradient(135deg, #169F85 0%, #138D75 100%);
+    box-shadow: 0 5px 14px rgba(26, 187, 156, 0.35);
+    transform: translateY(-1px);
+    color: #ffffff !important;
+}
+
+.empty-state-btn:active {
+    transform: translateY(0);
+}

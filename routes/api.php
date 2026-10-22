@@ -39,4 +39,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/sodc/submit-count', [\App\Http\Controllers\Api\Sodc\CountController::class, 'submitCount']);
     Route::post('/sodc/complete-bin', [\App\Http\Controllers\Api\Sodc\CountController::class, 'completeBin']);
     Route::post('/sodc/delete-count', [\App\Http\Controllers\Api\Sodc\CountController::class, 'deleteCount']);
+
+    // SOB (Stock Opname Branch) API Routes
+    Route::prefix('sob')->group(function () {
+        Route::get('/sessions/active', [\App\Http\Controllers\Api\Sob\ApiController::class, 'activeSessions']);
+        Route::get('/zones', [\App\Http\Controllers\Api\Sob\ApiController::class, 'zones']);
+        Route::get('/my-assignments', [\App\Http\Controllers\Api\Sob\ApiController::class, 'myAssignments']);
+        Route::post('/submit-count', [\App\Http\Controllers\Api\Sob\ApiController::class, 'submitCount']);
+    });
 });
+

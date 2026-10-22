@@ -12,7 +12,8 @@ return [
         'route' => 'dashboard',
     ],
 
-    // Header for Branch
+// Header for Branch
+    
     [
         'header' => 'Stock Opname DC',
     ],
@@ -107,6 +108,79 @@ return [
                 'title' => 'Count Results',
                 'icon' => 'ri-checkbox-multiple-line',
                 'route' => 'sodc.results.index',
+            ],
+        ],
+    ],
+
+
+    [
+        'header' => 'Stock Opname Branch',
+    ],
+
+    [
+        'title' => 'SO Branch',
+        'icon' => 'ri-store-2-line',
+        'submenu' => [
+            [
+                'title' => 'Sesi Opname Cabang',
+                'icon' => 'ri-calendar-check-line',
+                'route' => 'sob.sessions.index',
+            ],
+            [
+                'title' => 'Area & Zona Cabang',
+                'icon' => 'ri-map-pin-range-line',
+                'route' => 'sob.zones.index',
+            ],
+            [
+                'title' => 'Penugasan Petugas',
+                'icon' => 'ri-user-shared-line',
+                'route' => 'sob.assignments.index',
+            ],
+            [
+                'title' => 'Tracking SO',
+                'icon' => 'ri-radar-line',
+                'route' => 'sob.sweep_headers.index',
+            ],
+            [
+                'title' => 'Komparasi Hasil SO ',
+                'icon' => 'ri-compare-arrows-line',
+                'route' => 'sob.tag_results.index',
+            ],
+            [
+                'title' => 'Rekonsiliasi Stok Cabang',
+                'icon' => 'ri-file-chart-line',
+                'route' => 'sob.reconciliations.index',
+            ],
+        ],
+    ],
+
+    [
+        'header' => 'Other Apps',
+    ],
+
+    [
+        'title' => 'Konfirmasi Faktur',
+        'icon' => 'ri-store-2-line',
+        'submenu' => [
+            [
+                'title' => 'Data Pelanggan',
+                'icon' => 'ri-user-star-line',
+                'route' => 'konfirmasi_faktur.customers.index',
+            ],
+            [
+                'title' => 'Input List Bill',
+                'icon' => 'ri-map-pin-range-line',
+                'route' => 'sob.zones.index',
+            ],
+            [
+                'title' => 'Hasil Kunjungan',
+                'icon' => 'ri-user-shared-line',
+                'route' => 'sob.assignments.index',
+            ],
+            [
+                'title' => 'Hasil Pembaharuan Geotag',
+                'icon' => 'ri-radar-line',
+                'route' => 'sob.sweep_headers.index',
             ],
         ],
     ],

@@ -23,6 +23,11 @@ class InputByTeamController extends Controller
             }
         }
 
+        if (!$activeSession) {
+            $data = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 20);
+            return view('sodc.management.input_by_team.index', compact('data', 'activeSession'));
+        }
+
         $query = DB::table('opname_counts')
             ->leftJoin('users', 'opname_counts.counted_by', '=', 'users.id')
             ->leftJoin('opname_reference_details as rd', 'opname_counts.reference_detail_id', '=', 'rd.id')

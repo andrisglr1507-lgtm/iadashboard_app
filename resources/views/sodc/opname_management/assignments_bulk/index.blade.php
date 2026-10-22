@@ -26,10 +26,13 @@
 
 <div class="content-panel" style="margin-top: 20px;">
     @if(!$session)
-        <div class="p-5 text-center text-muted">
-            <i class="fas fa-exclamation-circle fa-3x mb-3 text-warning"></i>
-            <h5>Tidak ada Sesi Opname yang Aktif atau Draft.</h5>
-        </div>
+        <x-empty-state 
+            title="Tidak Ada Sesi Opname yang Aktif atau Draft"
+            description="Silakan buat atau aktifkan sesi opname terlebih dahulu sebelum membagi tugas assignment tim."
+            :actionUrl="route('sodc.sessions.index')"
+            actionText="Buka Manajemen Session"
+            actionIcon="fas fa-calendar-alt"
+        />
     @else
         <!-- TABS HEADER -->
         <style>

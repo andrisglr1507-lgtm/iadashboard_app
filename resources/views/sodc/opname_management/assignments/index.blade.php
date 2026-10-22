@@ -85,13 +85,14 @@
     @endif
 
     @if(!$session)
-        <div class="glass-card p-5 text-center">
-            <div class="mb-3">
-                <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
-            </div>
-            <h4 class="text-gray-800 font-weight-bold">Tidak ada Sesi Aktif/Draft</h4>
-            <p class="text-muted">Silakan buat Sesi Opname terlebih dahulu sebelum membagi tugas.</p>
-            <a href="{{ route('sodc.sessions.index') }}" class="btn btn-primary mt-2">Buat Sesi</a>
+        <div class="glass-card" style="padding: 40px 20px;">
+            <x-empty-state 
+                title="Tidak Ada Sesi Aktif / Draft"
+                description="Silakan buat atau pilih Sesi Opname terlebih dahulu sebelum membagi tugas hitung."
+                :actionUrl="route('sodc.sessions.index')"
+                actionText="Buat / Pilih Sesi"
+                actionIcon="fas fa-calendar-plus"
+            />
         </div>
     @else
         <div class="glass-card p-4 mb-4" style="display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);">

@@ -80,12 +80,11 @@
                         </td>
                     </tr>
                 @empty
-                    <tr>
-                        <td colspan="6" class="text-center py-4" style="color: #8ba0b5; text-align: center; padding: 32px;">
-                            <i class="fas fa-info-circle" style="font-size: 2rem; margin-bottom: 8px;"></i>
-                            <p>Tidak ada data sesi BA Pemeriksaan.</p>
-                        </td>
-                    </tr>
+                <x-empty-state 
+                    colspan="6"
+                    title="Tidak Ada Sesi BA Pemeriksaan"
+                    description="Belum ada data sesi Berita Acara Pemeriksaan yang dibuat."
+                />
                 @endforelse
             </tbody>
         </table>

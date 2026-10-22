@@ -87,12 +87,11 @@
                         </td>
                     </tr>
                     @empty
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 40px; color: #64748b;">
-                            <i class="fas fa-inbox fa-3x" style="color: #cbd5e1; margin-bottom: 10px;"></i>
-                            <p style="margin: 0;">Tidak ada data riwayat recount.</p>
-                        </td>
-                    </tr>
+                    <x-empty-state 
+                        colspan="6"
+                        title="Tidak Ada Riwayat Recount"
+                        description="Belum ada catatan riwayat recount untuk sesi atau filter saat ini."
+                    />
                     @endforelse
                 </tbody>
             </table>

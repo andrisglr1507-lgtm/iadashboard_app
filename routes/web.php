@@ -132,4 +132,38 @@ Route::prefix('sodc')->name('sodc.')->group(function () {
     Route::put('bad-stock/{id}', [\App\Http\Controllers\Sodc\Management\BadStockController::class, 'update'])->name('bad_stock.update');
     Route::delete('bad-stock/{id}', [\App\Http\Controllers\Sodc\Management\BadStockController::class, 'destroy'])->name('bad_stock.destroy');
 });
+
+    // SOB (Stock Opname Branch) Routes
+    Route::prefix('sob')->name('sob.')->group(function () {
+        // Sesi Opname Cabang
+        Route::resource('sessions', \App\Http\Controllers\Sob\SessionController::class);
+        Route::post('sessions/{id}/start', [\App\Http\Controllers\Sob\SessionController::class, 'start'])->name('sessions.start');
+        Route::post('sessions/{id}/close', [\App\Http\Controllers\Sob\SessionController::class, 'close'])->name('sessions.close');
+
+        // Area & Zona Cabang
+        Route::resource('zones', \App\Http\Controllers\Sob\ZoneController::class);
+
+        // Penugasan Petugas
+        Route::resource('assignments', \App\Http\Controllers\Sob\AssignmentController::class);
+
+        // Tracking Titik Sisir / Tags
+        Route::get('sweep-headers', [\App\Http\Controllers\Sob\SweepHeaderController::class, 'index'])->name('sweep_headers.index');
+        Route::get('sweep-headers/{id}', [\App\Http\Controllers\Sob\SweepHeaderController::class, 'show'])->name('sweep_headers.show');
+
+        // Komparasi Tag (Team A vs Team B)
+        Route::get('tag-results', [\App\Http\Controllers\Sob\TagResultController::class, 'index'])->name('tag_results.index');
+        Route::post('tag-results/recount', [\App\Http\Controllers\Sob\TagResultController::class, 'inputRecount'])->name('tag_results.recount');
+
+        // Rekonsiliasi Stok Cabang
+        Route::get('reconciliations', [\App\Http\Controllers\Sob\ReconciliationController::class, 'index'])->name('reconciliations.index');
+        Route::post('reconciliations/{id}/approve', [\App\Http\Controllers\Sob\ReconciliationController::class, 'approve'])->name('reconciliations.approve');
+        Route::post('reconciliations/generate/{sessionId}', [\App\Http\Controllers\Sob\ReconciliationController::class, 'generate'])->name('reconciliations.generate');
+    });
+
+    // Konfirmasi Faktur (Data Pelanggan)
+    Route::prefix('konfirmasi-faktur')->name('konfirmasi_faktur.')->group(function () {
+        Route::get('customers', [\App\Http\Controllers\KonfirmasiFaktur\CustomerController::class, 'index'])->name('customers.index');
+        Route::get('customers/export', [\App\Http\Controllers\KonfirmasiFaktur\CustomerController::class, 'export'])->name('customers.export');
+    });
 });
+

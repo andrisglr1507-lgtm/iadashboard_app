@@ -30,7 +30,13 @@
     </div>
 
     <!-- Bagian Kanan: Actions & Profile -->
-    <div style="display: flex; align-items: center; gap: 20px; margin: 0;">
+    <div style="display: flex; align-items: center; gap: 16px; margin: 0;">
+        @yield('page_actions')
+
+        @hasSection('page_actions')
+            <div style="width: 1px; height: 32px; background-color: #e2e8f0;"></div>
+        @endif
+
         <!-- Combo Box Sesi -->
         <form action="{{ route('global.set_session') }}" method="POST" id="globalSessionForm" style="display: flex; align-items: center; gap: 12px; margin: 0;">
             @csrf

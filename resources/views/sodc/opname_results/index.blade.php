@@ -19,8 +19,14 @@
 @section('content')
 
 @if(isset($error))
-    <div style="background: #fff1f2; border: 1px solid #fecdd3; color: #be123c; padding: 14px 16px; border-radius: 10px; margin-bottom: 16px;">
-        <i class="fas fa-exclamation-triangle"></i> {{ $error }}
+    <div class="content-panel" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 48px 20px; margin-top: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);">
+        <x-empty-state 
+            title="Tidak Ada Sesi Opname yang Aktif"
+            description="{{ $error }} Silakan pilih atau aktifkan sesi opname terlebih dahulu untuk menampilkan hasil rekonsiliasi."
+            :actionUrl="route('sodc.sessions.index')"
+            actionText="Kelola Sesi Opname"
+            actionIcon="fas fa-calendar-alt"
+        />
     </div>
 @else
     @if(session('success'))
@@ -169,9 +175,14 @@
                             </td> --}}
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="{{ ($hasR3 ?? false) ? 10 : 9 }}" style="text-align: center; padding: 40px; color: #64748b;">Tidak ada data yang ditemukan.</td>
-                        </tr>
+                    <x-empty-state 
+                        colspan="{{ ($hasR3 ?? false) ? 10 : 9 }}"
+                        title="Tidak Ada Data Rekonsiliasi"
+                        description="Tidak ditemukan data rekonsiliasi yang cocok dengan kriteria pencarian atau status yang dipilih."
+                        :actionUrl="request()->hasAny(['search', 'status']) ? route('sodc.results.index') : null"
+                        actionText="Reset Pencarian"
+                        actionIcon="fas fa-undo"
+                    />
                     @endforelse
                 </tbody>
             </table>

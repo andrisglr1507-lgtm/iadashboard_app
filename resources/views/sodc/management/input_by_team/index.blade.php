@@ -17,11 +17,27 @@
     </div>
 @endif
 
+@if(!$activeSession)
+    <div class="content-panel" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 48px 20px; margin-top: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);">
+        <x-empty-state 
+            title="Tidak Ada Sesi Opname yang Aktif"
+            description="Tidak ada sesi stock opname yang berstatus aktif saat ini. Silakan buat atau aktifkan sesi di menu Manajemen Session untuk melihat riwayat input tim."
+            :actionUrl="route('sodc.sessions.index')"
+            actionText="Buka Manajemen Session"
+            actionIcon="fas fa-calendar-check"
+        />
+    </div>
+@else
 <div class="content-panel" style="margin-top: 20px;">
-    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
         <div>
-            <h3 class="panel-title" style="margin: 0; font-size: 1.1rem; color: #1e293b;">Daftar Transaksi Input</h3>
-            <p style="margin: 4px 0 0; font-size: 0.85rem; color: #64748b;">Merekam setiap baris input dari aplikasi petugas</p>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <h3 class="panel-title" style="margin: 0; font-size: 1.1rem; color: #1e293b;">Daftar Transaksi Input</h3>
+                <span class="badge" style="background: #e0f2fe; color: #0284c7; font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; font-weight: 700;">
+                    <i class="fas fa-play-circle"></i> {{ $activeSession->session_code }}
+                </span>
+            </div>
+            <p style="margin: 4px 0 0; font-size: 0.85rem; color: #64748b;">Merekam setiap baris input dari aplikasi team counting</p>
         </div>
         <form method="GET" action="{{ route('sodc.input_by_team.index') }}" style="display: flex; gap: 10px;">
             <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari Bin / SKU / Nama / Tim..." style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; width: 250px;">
@@ -76,16 +92,24 @@
                         </td>
                     </tr>
                 @empty
-                    <tr>
-                        <td colspan="7" style="text-align: center; padding: 40px; color: #64748b;">Belum ada data inputan dari petugas.</td>
-                    </tr>
+                    <x-empty-state 
+                        colspan="7"
+                        title="Belum Ada Inputan Tim"
+                        description="Belum ada data transaksi input yang masuk dari aplikasi team counting untuk sesi ini."
+                        :actionUrl="request('search') ? route('sodc.input_by_team.index') : null"
+                        actionText="Reset Pencarian"
+                        actionIcon="fas fa-undo"
+                    />
                 @endforelse
             </tbody>
         </table>
     </div>
     
+    @if($data->hasPages())
     <div class="pagination-wrapper d-flex justify-content-center" style="margin-top: 20px;">
         {{ $data->appends(request()->query())->links('pagination::bootstrap-5') }}
     </div>
+    @endif
 </div>
+@endif
 @endsection

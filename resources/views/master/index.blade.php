@@ -51,12 +51,11 @@
                         </td>
                     </tr>
                 @empty
-                    <tr>
-                        <td colspan="3" class="text-center py-4" style="color: #8ba0b5;">
-                            <i class="fas fa-info-circle" style="font-size: 2rem; margin-bottom: 8px;"></i>
-                            <p>Tidak ada data principal ditemukan.</p>
-                        </td>
-                    </tr>
+                <x-empty-state 
+                    colspan="3"
+                    title="Tidak Ada Data Principal"
+                    description="Belum ada data principal yang terdaftar atau cocok dengan pencarian."
+                />
                 @endforelse
             </tbody>
         </table>

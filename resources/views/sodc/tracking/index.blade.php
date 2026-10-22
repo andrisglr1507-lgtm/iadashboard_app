@@ -10,10 +10,14 @@
 @endif
 
 @if(!$session)
-    <div style="background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 16px; border-radius: 8px; text-align: center; margin-top: 20px;">
-        <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
-        <p style="font-weight: 600; margin: 0;">Tidak ada Sesi Opname yang Aktif.</p>
-        <p style="margin: 5px 0 0 0; font-size: 0.9rem;">Silakan buat atau aktifkan sesi di menu Manajemen Session.</p>
+    <div class="content-panel" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 48px 20px; margin-top: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);">
+        <x-empty-state 
+            title="Tidak Ada Sesi Opname yang Aktif"
+            description="Tidak ada sesi stock opname yang berstatus aktif saat ini. Silakan buat atau aktifkan sesi di menu Manajemen Session untuk melihat progress tracking."
+            :actionUrl="route('sodc.sessions.index')"
+            actionText="Buka Manajemen Session"
+            actionIcon="fas fa-calendar-check"
+        />
     </div>
 @else
     <!-- Summary Cards -->
@@ -170,12 +174,11 @@
                         </td>
                     </tr>
                     @empty
-                    <tr>
-                        <td colspan="7" style="text-align: center; padding: 40px; color: #64748b; font-size: 0.85rem;">
-                            <i class="fas fa-inbox fa-3x" style="color: #cbd5e1; margin-bottom: 10px;"></i>
-                            <p style="margin: 0;">Tidak ada data ditemukan.</p>
-                        </td>
-                    </tr>
+                    <x-empty-state 
+                        colspan="7"
+                        title="Tidak Ada Data Tracking"
+                        description="Belum ada riwayat aktivitas tracking yang tercatat pada filter ini."
+                    />
                     @endforelse
                 </tbody>
             </table>
