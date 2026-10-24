@@ -84,33 +84,7 @@ class TaskController extends Controller
         $isRecountUser = $myAreas->contains('team_role', 'TEAM_RECOUNT');
         $myGlobalTeamRole = $isRecountUser ? 'TEAM_RECOUNT' : ($myAreas->isNotEmpty() ? $myAreas->first()->team_role : 'UNASSIGNED');
 
-        // 4. Fetch all recount tasks for this session:
-        // R1 & R2 are formed automatically in opname_results
-        $recountResults = DB::table('opname_results')
-            ->join('opname_reference_details', 'opname_results.reference_detail_id', '=', 'opname_reference_details.id')
-            ->where('opname_results.session_id', $activeSession->id)
-            ->where('opname_results.result_status', 'RECOUNT')
-            ->select(
-                'opname_reference_details.bin_code',
-                'opname_reference_details.sku_code',
-                'opname_reference_details.id as reference_detail_id',
-                'opname_results.recount1_qty',
-                'opname_results.recount2_qty'
-            )
-            ->get();
-
-        // R3 is an assignment created from the web dashboard
-        $r3Query = DB::table('opname_recount_assignments')
-            ->where('session_id', $activeSession->id)
-            ->where('round_number', 3)
-            ->where('status', '!=', 'CANCELLED');
-
-        if (!in_array($user->role, ['SUPER_ADMIN', 'ADMIN']) && !$isRecountUser) {
-            $r3Query->where('assigned_to', $user->id);
-        }
-        $r3Assignments = $r3Query->get();
-
-        // 5. Get all unique counts in this session to check is_counted
+        // 4. Get all unique counts in this session to check is_counted
         $allCounts = DB::table('opname_counts')
             ->join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
             ->leftJoin('products', 'opname_reference_details.sku_code', '=', 'products.sku_code')
@@ -145,53 +119,24 @@ class TaskController extends Controller
             }
         }
 
-        // Map Recount bins by bin_code AND round (R1, R2, R3)
+        // 5. Fetch Recount Tasks (R1, R2, R3)
         $recountBins = [];
 
-        // R1 & R2
-        foreach ($recountResults as $res) {
-            $binCode = $res->bin_code;
-            if (is_null($res->recount1_qty)) {
-                $rType = 'R1';
-                $targetSeq = 2;
-            } elseif (is_null($res->recount2_qty)) {
-                $rType = 'R2';
-                $targetSeq = 3;
-            } else {
-                continue;
-            }
+        // A. Explicit assignments from opname_recount_assignments (ALL ROUNDS: 1, 2, 3)
+        $recountAssignmentsQuery = DB::table('opname_recount_assignments')
+            ->where('session_id', $activeSession->id)
+            ->whereNotIn('status', ['CANCELLED', 'cancelled']);
 
-            if (!isset($recountBins[$binCode])) {
-                $recountBins[$binCode] = [];
-            }
-            if (!isset($recountBins[$binCode][$rType])) {
-                $recountBins[$binCode][$rType] = [
-                    'all_counted' => true,
-                    'items' => []
-                ];
-            }
-
-            $isItemCounted = $allCounts->contains(function($c) use ($res, $targetSeq) {
-                return $c->reference_detail_id == $res->reference_detail_id 
-                    && $c->count_sequence == $targetSeq 
-                    && $c->team_role == 'RECOUNT';
-            });
-
-            if (!$isItemCounted) {
-                $recountBins[$binCode][$rType]['all_counted'] = false;
-            }
-
-            $recountBins[$binCode][$rType]['items'][] = [
-                'id_product' => $res->sku_code,
-                'reference_detail_id' => $res->reference_detail_id
-            ];
+        if (!in_array($user->role, ['SUPER_ADMIN', 'ADMIN']) && !$isRecountUser) {
+            $recountAssignmentsQuery->where('assigned_to', $user->id);
         }
+        $recountAssignments = $recountAssignmentsQuery->get();
 
-        // R3
-        foreach ($r3Assignments as $asg) {
+        foreach ($recountAssignments as $asg) {
             $binCode = $asg->location_code;
-            $rType = 'R3';
-            $targetSeq = 4;
+            $roundNum = (int)($asg->round_number ?? 1);
+            $rType = 'R' . $roundNum;
+            $targetSeq = $roundNum + 1; // round 1 -> seq 2 (R1), round 2 -> seq 3 (R2), round 3 -> seq 4 (R3)
 
             if (!isset($recountBins[$binCode])) {
                 $recountBins[$binCode] = [];
@@ -203,21 +148,117 @@ class TaskController extends Controller
                 ];
             }
 
-            $isItemCounted = ($asg->status === 'COMPLETED') || $allCounts->contains(function($c) use ($asg, $targetSeq) {
+            $isItemCounted = in_array(strtoupper($asg->status), ['COMPLETED', 'DONE']) || $allCounts->contains(function($c) use ($asg, $targetSeq) {
                 return $c->bin_code == $asg->location_code 
                     && $c->sku_code == $asg->id_product 
                     && $c->count_sequence == $targetSeq 
-                    && $c->team_role == 'RECOUNT';
+                    && in_array($c->team_role, ['RECOUNT', 'TEAM_RECOUNT']);
             });
 
             if (!$isItemCounted) {
                 $recountBins[$binCode][$rType]['all_counted'] = false;
             }
 
-            $recountBins[$binCode][$rType]['items'][] = [
-                'id_product' => $asg->id_product,
-                'reference_detail_id' => null
-            ];
+            $alreadyHasItem = collect($recountBins[$binCode][$rType]['items'])->contains('id_product', $asg->id_product);
+            if (!$alreadyHasItem) {
+                $recountBins[$binCode][$rType]['items'][] = [
+                    'id_product' => $asg->id_product,
+                    'reference_detail_id' => null
+                ];
+            }
+        }
+
+        // B. Recount tasks from opname_results (BOTH pending discrepancies and completed/final recounts!)
+        if ($isRecountUser || in_array($user->role, ['SUPER_ADMIN', 'ADMIN'])) {
+            $recountResults = DB::table('opname_results')
+                ->join('opname_reference_details', 'opname_results.reference_detail_id', '=', 'opname_reference_details.id')
+                ->where('opname_results.session_id', $activeSession->id)
+                ->where(function($q) {
+                    $q->where('opname_results.result_status', 'RECOUNT')
+                      ->orWhereNotNull('opname_results.recount1_qty')
+                      ->orWhereNotNull('opname_results.recount2_qty')
+                      ->orWhereNotNull('opname_results.recount3_qty');
+                })
+                ->select(
+                    'opname_reference_details.bin_code',
+                    'opname_reference_details.sku_code',
+                    'opname_reference_details.id as reference_detail_id',
+                    'opname_results.result_status',
+                    'opname_results.recount1_qty',
+                    'opname_results.recount2_qty',
+                    'opname_results.recount3_qty'
+                )
+                ->get();
+
+            foreach ($recountResults as $res) {
+                $binCode = $res->bin_code;
+
+                // 1. Discrepancy detected, R1 not counted yet -> ON PROGRESS (R1)
+                if (is_null($res->recount1_qty) && $res->result_status === 'RECOUNT') {
+                    $rType = 'R1';
+                    $isItemCounted = false;
+                }
+                // 2. R1 counted
+                elseif (!is_null($res->recount1_qty) && is_null($res->recount2_qty)) {
+                    if ($res->result_status === 'RECOUNT') {
+                        // R1 did NOT match Team A, B, or System!
+                        // Escalated to R2! It stays in ON PROGRESS as R2!
+                        $rType = 'R2';
+                        $isItemCounted = false;
+                    } else {
+                        // R1 matched! It is FINAL at R1!
+                        // Appears in tab DONE as R1!
+                        $rType = 'R1';
+                        $isItemCounted = true;
+                    }
+                }
+                // 3. R2 counted
+                elseif (!is_null($res->recount2_qty) && is_null($res->recount3_qty)) {
+                    if ($res->result_status === 'RECOUNT') {
+                        // R2 did not match, escalated to R3!
+                        $rType = 'R3';
+                        $isItemCounted = false;
+                    } else {
+                        // R2 matched! It is FINAL at R2!
+                        // Appears in tab DONE as R2!
+                        $rType = 'R2';
+                        $isItemCounted = true;
+                    }
+                }
+                // 4. R3 counted -> FINAL at R3
+                elseif (!is_null($res->recount3_qty)) {
+                    $rType = 'R3';
+                    $isItemCounted = true;
+                } else {
+                    continue;
+                }
+
+                if (!isset($recountBins[$binCode])) {
+                    $recountBins[$binCode] = [];
+                }
+                if (!isset($recountBins[$binCode][$rType])) {
+                    $recountBins[$binCode][$rType] = [
+                        'all_counted' => $isItemCounted,
+                        'items' => [
+                            [
+                                'id_product' => $res->sku_code,
+                                'reference_detail_id' => $res->reference_detail_id
+                            ]
+                        ]
+                    ];
+                } else {
+                    if (!$isItemCounted) {
+                        $recountBins[$binCode][$rType]['all_counted'] = false;
+                    }
+                    $alreadyHasItem = collect($recountBins[$binCode][$rType]['items'])->contains('id_product', $res->sku_code);
+                    if (!$alreadyHasItem) {
+                        $recountBins[$binCode][$rType]['items'][] = [
+                            'id_product' => $res->sku_code,
+                            'reference_detail_id' => $res->reference_detail_id
+                        ];
+                    }
+                }
+            }
         }
 
         // 6. Get ALL target details for this session and group by bin
@@ -307,27 +348,29 @@ class TaskController extends Controller
                     'reference_detail_id' => $bin->reference_detail_id
                 ];
 
-                // Append R3 task if this regular user was assigned R3 for this bin
-                if (isset($recountBins[$code]['R3'])) {
-                    $uniqueCode = $code . '_R3';
-                    if (!isset($binsAssoc[$uniqueCode])) {
-                        $binsAssoc[$uniqueCode] = [
-                            'bin_code' => $code,
-                            'warehouse_id' => $wId,
-                            'warehouse_name' => $bin->warehouse_name ?? ($wId !== 'UNKNOWN' ? 'Gudang ' . $wId : null),
-                            'warehouse_code' => $bin->warehouse_code ?? null,
-                            'zone' => $zone,
-                            'aisle' => $aisle,
-                            'level' => $level,
-                            'ganjil_genap' => $ganjilGenap,
-                            'my_role_for_this_bin' => 'RECOUNT',
-                            'is_counted_by_my_team' => $recountBins[$code]['R3']['all_counted'],
-                            'counted_by_teams' => $countedByTeams,
-                            'actual_principals' => $actualPrincipals,
-                            'is_ad_hoc' => $isAdHoc,
-                            'taskType' => 'R3',
-                            'expected_items' => $recountBins[$code]['R3']['items']
-                        ];
+                // Append ALL assigned recount tasks (R1, R2, R3) for this regular user
+                if (isset($recountBins[$code])) {
+                    foreach ($recountBins[$code] as $rType => $data) {
+                        $uniqueCode = $code . '_' . $rType;
+                        if (!isset($binsAssoc[$uniqueCode])) {
+                            $binsAssoc[$uniqueCode] = [
+                                'bin_code' => $code,
+                                'warehouse_id' => $wId,
+                                'warehouse_name' => $bin->warehouse_name ?? ($wId !== 'UNKNOWN' ? 'Gudang ' . $wId : null),
+                                'warehouse_code' => $bin->warehouse_code ?? null,
+                                'zone' => $zone,
+                                'aisle' => $aisle,
+                                'level' => $level,
+                                'ganjil_genap' => $ganjilGenap,
+                                'my_role_for_this_bin' => 'TEAM_RECOUNT',
+                                'is_counted_by_my_team' => $data['all_counted'],
+                                'counted_by_teams' => $countedByTeams,
+                                'actual_principals' => $actualPrincipals,
+                                'is_ad_hoc' => $isAdHoc,
+                                'taskType' => $rType,
+                                'expected_items' => $data['items']
+                            ];
+                        }
                     }
                 }
             }
@@ -409,16 +452,16 @@ class TaskController extends Controller
 
         $requestedTaskType = $request->input('taskType') ?? $request->input('task_type');
 
-        // Fetch ALL recount assignments for this bin (including COMPLETED, for round 3)
+        // Fetch ALL recount assignments for this bin (including COMPLETED, for all rounds 1, 2, 3)
         $recountQuery = DB::table('opname_recount_assignments')
             ->where('session_id', $activeSession->id)
             ->where('location_code', $binCode)
-            ->where('status', '!=', 'CANCELLED');
+            ->whereNotIn('status', ['CANCELLED', 'cancelled']);
             
         if (!in_array($user->role, ['SUPER_ADMIN', 'ADMIN']) && !$isRecountUser) {
             $recountQuery->where('assigned_to', $user->id);
         }
-        $myRecountsRaw = $recountQuery->get()->keyBy('id_product');
+        $myRecountsRaw = $recountQuery->get();
 
         // Ambil semua counts untuk reference details di bin ini
         $allCounts = \App\Models\OpnameCount::where('session_id', $activeSession->id)
@@ -436,13 +479,20 @@ class TaskController extends Controller
         foreach ($details as $detail) {
             $productId = $detail->product->id_product ?? $detail->sku_code;
             $resultRef = $allResults->get($detail->id);
-            $r3 = $myRecountsRaw->get($productId);
             
             $countA = $allCounts->where('reference_detail_id', $detail->id)->where('team_id', 'TEAM_A')->where('count_sequence', 1)->first();
             $countB = $allCounts->where('reference_detail_id', $detail->id)->where('team_id', 'TEAM_B')->where('count_sequence', 1)->first();
-            $countR1 = $allCounts->where('reference_detail_id', $detail->id)->where('team_id', 'RECOUNT')->where('count_sequence', 2)->first();
-            $countR2 = $allCounts->where('reference_detail_id', $detail->id)->where('team_id', 'RECOUNT')->where('count_sequence', 3)->first();
-            $countR3 = $allCounts->where('reference_detail_id', $detail->id)->where('team_id', 'RECOUNT')->where('count_sequence', 4)->first();
+            $countR1 = $allCounts->where('reference_detail_id', $detail->id)->whereIn('team_id', ['RECOUNT', 'TEAM_RECOUNT'])->where('count_sequence', 2)->first();
+            $countR2 = $allCounts->where('reference_detail_id', $detail->id)->whereIn('team_id', ['RECOUNT', 'TEAM_RECOUNT'])->where('count_sequence', 3)->first();
+            $countR3 = $allCounts->where('reference_detail_id', $detail->id)->whereIn('team_id', ['RECOUNT', 'TEAM_RECOUNT'])->where('count_sequence', 4)->first();
+
+            // Match explicit assignment (by requested round if specified, or latest round)
+            if ($requestedTaskType && str_starts_with($requestedTaskType, 'R')) {
+                $targetRound = (int)substr($requestedTaskType, 1);
+                $asg = $myRecountsRaw->where('id_product', $productId)->where('round_number', $targetRound)->first();
+            } else {
+                $asg = $myRecountsRaw->where('id_product', $productId)->sortByDesc('round_number')->first();
+            }
 
             // Determine taskType for this item
             $taskType = 'NORMAL';
@@ -450,11 +500,17 @@ class TaskController extends Controller
             $myCount = null;
             $isCounted = false;
 
-            if ($requestedTaskType === 'R3' || ($r3 && ($requestedTaskType == 'R3' || ($isRecountUser && $resultRef && !is_null($resultRef->recount2_qty))))) {
+            if ($asg) {
+                $roundNum = (int)($asg->round_number ?? 1);
+                $taskType = 'R' . $roundNum;
+                $expectedSequence = $roundNum + 1;
+                $myCount = $expectedSequence == 2 ? $countR1 : ($expectedSequence == 3 ? $countR2 : $countR3);
+                $isCounted = in_array(strtoupper($asg->status), ['COMPLETED', 'DONE']) || ($myCount !== null);
+            } elseif ($requestedTaskType === 'R3') {
                 $taskType = 'R3';
                 $expectedSequence = 4;
                 $myCount = $countR3;
-                $isCounted = ($r3 && $r3->status === 'COMPLETED') || ($myCount !== null);
+                $isCounted = ($myCount !== null);
             } elseif ($requestedTaskType === 'R2' || ($isRecountUser && $resultRef && $resultRef->result_status === 'RECOUNT' && !is_null($resultRef->recount1_qty) && is_null($resultRef->recount2_qty))) {
                 $taskType = 'R2';
                 $expectedSequence = 3;

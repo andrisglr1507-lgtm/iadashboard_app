@@ -107,6 +107,20 @@ class CountController extends Controller
             ], 403);
         }
 
+        // Tentukan count_sequence target
+        $targetSequence = 1;
+        if ($teamId === 'RECOUNT') {
+            if ($taskType === 'R3' || ($r3Assignment && ($taskType == 'R3' || ($resultRef && !is_null($resultRef->recount2_qty))))) {
+                $targetSequence = 4;
+            } elseif ($taskType === 'R2' || ($resultRef && !is_null($resultRef->recount1_qty) && is_null($resultRef->recount2_qty))) {
+                $targetSequence = 3;
+            } elseif ($taskType === 'R1' || ($resultRef && $resultRef->result_status === 'RECOUNT' && is_null($resultRef->recount1_qty))) {
+                $targetSequence = 2;
+            } else {
+                $targetSequence = 2; // Default to R1
+            }
+        }
+
         // 🔹 CEK KONFLIK (OFFLINE-FIRST CONFLICT RESOLUTION)
         if ($teamId !== 'RECOUNT') {
             $hasConflict = OpnameCount::join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
@@ -123,12 +137,33 @@ class CountController extends Controller
                 ], 409); // HTTP 409 Conflict
             }
         } else {
-            // For R3, verify if it was already marked COMPLETED by someone else
-            if ($r3Assignment && $r3Assignment->status === 'COMPLETED' && $r3Assignment->assigned_to != $user->id) {
+            // For Recount (R1, R2, R3)
+            // 1. Cek explicit assignment jika sudah ditandai COMPLETED oleh user lain
+            if ($r3Assignment && in_array(strtoupper($r3Assignment->status), ['COMPLETED', 'DONE']) && $r3Assignment->assigned_to != $user->id) {
                 return response()->json([
                     'success' => false,
                     'error_code' => 'CONFLICT_ALREADY_DONE',
-                    'message' => 'Maaf, tugas R3 untuk Bin/SKU ini baru saja diselesaikan oleh petugas lain!'
+                    'message' => 'Maaf, tugas Recount untuk Bin/SKU ini baru saja diselesaikan oleh petugas lain!'
+                ], 409);
+            }
+
+            // 2. Cek apakah hitungan recount pada round/sequence ini sudah disubmit oleh rekan Tim Recount lain
+            $existingRecountConflict = OpnameCount::join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
+                ->where('opname_counts.session_id', $session->id)
+                ->whereIn('opname_counts.team_id', ['RECOUNT', 'TEAM_RECOUNT'])
+                ->where('opname_reference_details.bin_code', $binCode)
+                ->where('opname_counts.count_sequence', $targetSequence)
+                ->where('opname_counts.counted_by', '!=', $user->id)
+                ->leftJoin('users', 'opname_counts.counted_by', '=', 'users.id')
+                ->select('users.name as counter_name')
+                ->first();
+
+            if ($existingRecountConflict) {
+                $counterName = $existingRecountConflict->counter_name ?? 'rekan Tim Recount Anda';
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'CONFLICT_ALREADY_DONE',
+                    'message' => "Maaf, tugas Recount ($taskType) untuk Bin $binCode baru saja diselesaikan oleh $counterName!"
                 ], 409);
             }
         }
@@ -199,19 +234,7 @@ class CountController extends Controller
         }
 
         if ($refDetailId) {
-            // Tentukan count_sequence berdasarkan apakah ini recount atau reguler
-            $targetSequence = 1;
-            if ($teamId === 'RECOUNT') {
-                if ($taskType === 'R3' || ($r3Assignment && ($taskType == 'R3' || ($resultRef && !is_null($resultRef->recount2_qty))))) {
-                    $targetSequence = 4;
-                } elseif ($taskType === 'R2' || ($resultRef && !is_null($resultRef->recount1_qty) && is_null($resultRef->recount2_qty))) {
-                    $targetSequence = 3;
-                } elseif ($taskType === 'R1' || ($resultRef && $resultRef->result_status === 'RECOUNT' && is_null($resultRef->recount1_qty))) {
-                    $targetSequence = 2;
-                } else {
-                    $targetSequence = 2; // Default to R1
-                }
-            }
+            // Simpan Hitungan ke opname_counts
 
             // Simpan Hitungan ke opname_counts
             // Cek apakah tim ini sudah submit untuk ref ini sebelumnya (Mencegah double insert jika mereka resubmit)
@@ -252,10 +275,14 @@ class CountController extends Controller
             // Trigger realtime sync immediately on every count submission!
             \App\Http\Controllers\Sodc\Result\CountResultController::syncSingleBin($session->id, $refDetailId);
 
-            // Update R3 assignment jika tugas ini adalah R3
-            if ($targetSequence == 4 && $r3Assignment) {
+            // Update assignment di opname_recount_assignments jika ada (untuk R1, R2, atau R3)
+            if ($targetSequence >= 2 && $targetSequence <= 4) {
+                $roundNum = $targetSequence - 1; // seq 2 -> round 1 (R1), seq 3 -> round 2 (R2), seq 4 -> round 3 (R3)
                 \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
-                    ->where('assignment_id', $r3Assignment->assignment_id)
+                    ->where('session_id', $session->id)
+                    ->where('location_code', $binCode)
+                    ->where('id_product', $idProduct)
+                    ->where('round_number', $roundNum)
                     ->update([
                         'status' => 'COMPLETED',
                         'submitted_at' => now(),
