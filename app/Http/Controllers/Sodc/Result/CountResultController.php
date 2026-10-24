@@ -150,11 +150,21 @@ class CountResultController extends Controller
             $status = 'UNCOUNTED';
             $finalQty = 0;
 
+            $hasPendingR3 = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                ->where('session_id', $sessionId)
+                ->where('location_code', $ref->bin_code)
+                ->where('id_product', $ref->sku_code)
+                ->where('round_number', 3)
+                ->where('status', 'PENDING')
+                ->exists();
+
             // Logika A vs B (Double Mode)
             if ($session->mode == 'DOUBLE') {
                 if ($r3Qty !== null) {
                     $status = 'FINAL';
                     $finalQty = $r3Qty;
+                } else if ($hasPendingR3) {
+                    $status = 'RECOUNT';
                 } else if ($aQty !== null && $bQty !== null) {
                     if ($aQty == $bQty) {
                         $status = 'MATCH';
@@ -301,9 +311,19 @@ class CountResultController extends Controller
         $status = 'UNCOUNTED';
         $finalQty = 0;
 
+        $hasPendingR3 = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+            ->where('session_id', $sessionId)
+            ->where('location_code', $ref->bin_code)
+            ->where('id_product', $ref->sku_code)
+            ->where('round_number', 3)
+            ->where('status', 'PENDING')
+            ->exists();
+
         if ($session->mode == 'DOUBLE') {
             if ($r3Qty !== null) {
                 $status = 'FINAL'; $finalQty = $r3Qty;
+            } else if ($hasPendingR3) {
+                $status = 'RECOUNT';
             } else if ($aQty !== null && $bQty !== null) {
                 if ($aQty == $bQty) {
                     $status = 'MATCH'; $finalQty = $aQty;
@@ -499,6 +519,12 @@ class CountResultController extends Controller
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
+
+                // Update result status to RECOUNT so it shows as awaiting R3 audit
+                $result->update([
+                    'result_status' => 'RECOUNT'
+                ]);
+
                 $assignedCount++;
             }
         }

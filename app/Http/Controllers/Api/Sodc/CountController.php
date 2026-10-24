@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\OpnameSession;
 use App\Models\OpnameCount;
+use App\Models\OpnameResult;
 use App\Models\OpnameReferenceDetail;
 use App\Models\Product;
 use App\Models\Bin;
@@ -48,47 +49,65 @@ class CountController extends Controller
             return response()->json(['success' => false, 'message' => 'Session ini sudah close.'], 400);
         }
 
-        // Find Team Role for this Bin (from UserArea)
+        // Find Team Role for this Bin
         $binCode = $request->bin_code;
         $bin = Bin::where('bin_code', $binCode)->first();
-        
-        $teamId = null;
-        if ($bin) {
-            // "Free-for-all" mode: Just get the user's team role for this session
-            $area = \App\Models\OpnameUserArea::where('session_id', $session->id)
-                ->where('user_id', $user->id)
+        $idProduct = $request->id_product;
+        $refDetailId = $request->reference_detail_id ?? null;
+        $taskType = $request->taskType ?? $request->task_type ?? null;
+
+        $area = \App\Models\OpnameUserArea::where('session_id', $session->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        $myTeamRole = $area ? $area->team_role : 'UNASSIGNED';
+        $isRecountUser = ($myTeamRole === 'TEAM_RECOUNT' || in_array($user->role, ['AUDITOR', 'ADMIN', 'SUPER_ADMIN']));
+
+        // Find reference detail and result to check if this item is in recount
+        $resultRef = null;
+        if ($refDetailId) {
+            $resultRef = OpnameResult::where('session_id', $session->id)->where('reference_detail_id', $refDetailId)->first();
+        }
+        if (!$resultRef && $binCode && $idProduct) {
+            $refDetail = OpnameReferenceDetail::where('reference_id', $session->reference_id)
+                ->where('bin_code', $binCode)
+                ->where('sku_code', $idProduct)
                 ->first();
-                
-            if ($area && $area->team_role) {
-                $teamId = $area->team_role;
-            } else {
-                // BLOCKER: Reject submission if user is not assigned to any team
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Akses ditolak: Anda belum diberikan tugas (Assignment) pada Sesi Opname ini. Silakan hubungi Admin untuk mendapatkan tim.'
-                ], 403);
-            }
-            
-            // Override with RECOUNT team if it is a recount task
-            if (\Illuminate\Support\Facades\Schema::hasTable('opname_recount_assignments')) {
-                $recount = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
-                    ->where('session_id', $session->id)
-                    ->where('assigned_to', $user->id)
-                    ->where('location_code', $bin->bin_code)
-                    ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS'])
-                    ->orderBy('round_number', 'desc')
-                    ->first();
-                if ($recount) {
-                    $teamId = 'RECOUNT';
-                }
+            if ($refDetail) {
+                $refDetailId = $refDetail->id;
+                $resultRef = OpnameResult::where('session_id', $session->id)->where('reference_detail_id', $refDetailId)->first();
             }
         }
 
-        $binCode = $request->bin_code;
-        $bin = Bin::where('bin_code', $binCode)->first();
+        // Check if there is an R3 assignment for this bin & SKU
+        $r3Assignment = null;
+        if (\Illuminate\Support\Facades\Schema::hasTable('opname_recount_assignments')) {
+            $r3Assignment = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                ->where('session_id', $session->id)
+                ->where('location_code', $binCode)
+                ->where('id_product', $idProduct)
+                ->where('round_number', 3)
+                ->where('status', '!=', 'CANCELLED')
+                ->first();
+        }
+
+        $isRecountTask = in_array($taskType, ['R1', 'R2', 'R3']) 
+            || ($resultRef && $resultRef->result_status === 'RECOUNT') 
+            || ($r3Assignment !== null) 
+            || $isRecountUser;
+
+        if ($isRecountTask) {
+            $teamId = 'RECOUNT';
+        } elseif ($myTeamRole && $myTeamRole !== 'UNASSIGNED') {
+            $teamId = $myTeamRole;
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak: Anda belum diberikan tugas (Assignment) pada Sesi Opname ini. Silakan hubungi Admin untuk mendapatkan tim.'
+            ], 403);
+        }
 
         // 🔹 CEK KONFLIK (OFFLINE-FIRST CONFLICT RESOLUTION)
-        // Cek apakah Bin ini sudah pernah dihitung oleh anggota tim lain (untuk mode reguler)
         if ($teamId !== 'RECOUNT') {
             $hasConflict = OpnameCount::join('opname_reference_details', 'opname_counts.reference_detail_id', '=', 'opname_reference_details.id')
                 ->where('opname_counts.session_id', $session->id)
@@ -103,28 +122,13 @@ class CountController extends Controller
                     'message' => "Bin $binCode sudah diselesaikan oleh rekan tim Anda."
                 ], 409); // HTTP 409 Conflict
             }
-        }
-
-        $idProduct = $request->id_product;
-
-        // 🔹 SABUK PENGAMAN KHUSUS RECOUNT
-        // Pastikan tugas recount-nya masih ada (belum keduluan dihapus oleh submit teman lain)
-        $currentRecountAssignment = null;
-        if ($teamId === 'RECOUNT') {
-            $currentRecountAssignment = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
-                ->where('session_id', $session->id)
-                ->where('location_code', $binCode)
-                ->where('id_product', $idProduct)
-                ->where('assigned_to', $user->id)
-                ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS'])
-                ->orderBy('round_number', 'desc')
-                ->first();
-
-            if (!$currentRecountAssignment) {
+        } else {
+            // For R3, verify if it was already marked COMPLETED by someone else
+            if ($r3Assignment && $r3Assignment->status === 'COMPLETED' && $r3Assignment->assigned_to != $user->id) {
                 return response()->json([
                     'success' => false,
                     'error_code' => 'CONFLICT_ALREADY_DONE',
-                    'message' => 'Maaf, tugas untuk Bin/SKU ini baru saja diselesaikan oleh petugas lain!'
+                    'message' => 'Maaf, tugas R3 untuk Bin/SKU ini baru saja diselesaikan oleh petugas lain!'
                 ], 409);
             }
         }
@@ -197,13 +201,15 @@ class CountController extends Controller
         if ($refDetailId) {
             // Tentukan count_sequence berdasarkan apakah ini recount atau reguler
             $targetSequence = 1;
-            if ($teamId === 'RECOUNT' && isset($recount)) {
-                if ($recount->round_number == 1) {
-                    $targetSequence = 2;
-                } else if ($recount->round_number == 2) {
-                    $targetSequence = 3;
-                } else if ($recount->round_number == 3) {
+            if ($teamId === 'RECOUNT') {
+                if ($taskType === 'R3' || ($r3Assignment && ($taskType == 'R3' || ($resultRef && !is_null($resultRef->recount2_qty))))) {
                     $targetSequence = 4;
+                } elseif ($taskType === 'R2' || ($resultRef && !is_null($resultRef->recount1_qty) && is_null($resultRef->recount2_qty))) {
+                    $targetSequence = 3;
+                } elseif ($taskType === 'R1' || ($resultRef && $resultRef->result_status === 'RECOUNT' && is_null($resultRef->recount1_qty))) {
+                    $targetSequence = 2;
+                } else {
+                    $targetSequence = 2; // Default to R1
                 }
             }
 
@@ -243,35 +249,19 @@ class CountController extends Controller
                 ]);
             }
             
-            // Trigger realtime sync for SINGLE/RECORD_ONLY mode immediately!
-            if ($session->mode == 'SINGLE' || $session->mode == 'RECORD_ONLY' || $targetSequence == 1) {
-                \App\Http\Controllers\Sodc\Result\CountResultController::syncSingleBin($session->id, $refDetailId);
-            }
+            // Trigger realtime sync immediately on every count submission!
+            \App\Http\Controllers\Sodc\Result\CountResultController::syncSingleBin($session->id, $refDetailId);
 
-            // Langsung update opname_results jika ini RECOUNT agar laravel web tidak menunjukkan 0
-            if ($targetSequence >= 2 && $targetSequence <= 4) {
-                // (Ini sudah di-handle oleh syncSingleBin di atas, tapi kita pertahankan logika dispatch Recount di bawahnya)
-                
-                // 🔹 LOGIKA PEMBERSIHAN TUGAS RECOUNT (OPSI 1)
-                if ($currentRecountAssignment) {
-                    // 1. Resmikan hitungan milik user ini
-                    \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
-                        ->where('assignment_id', $currentRecountAssignment->assignment_id)
-                        ->update([
-                            'status' => 'COMPLETED',
-                            'submitted_at' => now(),
-                            'is_final' => true
-                        ]);
-
-                    // 2. Hapus sisa tugas untuk orang lain di round yang sama
-                    \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
-                        ->where('session_id', $session->id)
-                        ->where('location_code', $binCode)
-                        ->where('id_product', $idProduct)
-                        ->where('round_number', $currentRecountAssignment->round_number)
-                        ->where('assigned_to', '!=', $user->id)
-                        ->delete();
-                }
+            // Update R3 assignment jika tugas ini adalah R3
+            if ($targetSequence == 4 && $r3Assignment) {
+                \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                    ->where('assignment_id', $r3Assignment->assignment_id)
+                    ->update([
+                        'status' => 'COMPLETED',
+                        'submitted_at' => now(),
+                        'is_final' => true,
+                        'updated_at' => now()
+                    ]);
             }
         }
 
@@ -396,38 +386,25 @@ class CountController extends Controller
         }
 
         $binCode = $request->bin_code;
-        $bin = \App\Models\Bin::where('bin_code', $binCode)->first();
-        
-        $teamId = null;
-        if ($bin) {
-            $area = \App\Models\OpnameUserArea::where('session_id', $session->id)
-                ->where('user_id', $user->id)
-                ->first();
-                
-            if ($area && $area->team_role) {
-                $teamId = $area->team_role;
-            }
+        $area = \App\Models\OpnameUserArea::where('session_id', $session->id)
+            ->where('user_id', $user->id)
+            ->first();
             
-            // Override if it is a recount assignment
-            if (\Illuminate\Support\Facades\Schema::hasTable('opname_recount_assignments')) {
-                $recount = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
-                    ->where('session_id', $session->id)
-                    ->where('assigned_to', $user->id)
-                    ->where('location_code', $bin->bin_code)
-                    ->whereIn('status', ['PENDING', 'ASSIGNED', 'IN_PROGRESS'])
-                    ->orderBy('round_number', 'desc')
-                    ->first();
-                if ($recount) {
-                    $teamId = 'RECOUNT';
-                }
-            }
+        $myTeamRole = $area ? $area->team_role : 'UNASSIGNED';
+        $isRecountUser = ($myTeamRole === 'TEAM_RECOUNT' || in_array($user->role, ['AUDITOR', 'ADMIN', 'SUPER_ADMIN']));
+        $taskType = $request->taskType ?? $request->task_type ?? null;
 
-            if (!$teamId || $teamId === 'UNKNOWN') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Akses ditolak: Anda belum diberikan tugas.'
-                ], 403);
-            }
+        if (in_array($taskType, ['R1', 'R2', 'R3']) || $isRecountUser) {
+            $teamId = 'RECOUNT';
+            $targetSequence = ($taskType === 'R3') ? 4 : (($taskType === 'R2') ? 3 : 2);
+        } else if ($myTeamRole && $myTeamRole !== 'UNASSIGNED') {
+            $teamId = $myTeamRole;
+            $targetSequence = 1;
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak: Anda belum diberikan tugas.'
+            ], 403);
         }
 
         // Ambil semua barang (termasuk ad-hoc dari tim lain) di rak ini
@@ -441,6 +418,7 @@ class CountController extends Controller
             $existingCount = \App\Models\OpnameCount::where('session_id', $session->id)
                 ->where('team_id', $teamId)
                 ->where('reference_detail_id', $ref->id)
+                ->where('count_sequence', $targetSequence)
                 ->first();
 
             // Jika belum hitung sama sekali, paksa nilai 0
@@ -455,12 +433,14 @@ class CountController extends Controller
                     'input_karton' => 0,
                     'input_pcs' => 0,
                     'count_status' => 'SUBMITTED',
-                    'count_sequence' => 1,
+                    'count_sequence' => $targetSequence,
                     'counted_by' => $user->id,
                     'counted_at' => now(),
                     'client_created_at' => now(),
                 ]);
                 $insertedCount++;
+
+                \App\Http\Controllers\Sodc\Result\CountResultController::syncSingleBin($session->id, $ref->id);
             }
         }
 
