@@ -519,4 +519,132 @@ class CountResultController extends Controller
         if (!$sessionId) return redirect()->back()->with('error', 'Tidak ada sesi aktif.');
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\Sodc\ComplexOpnameExport($sessionId), 'Opname_Complex_'.date('YmdHis').'.xlsx');
     }
+
+    /**
+     * Tampilkan detail jejak audit hasil opname (Halaman Penuh)
+     */
+    public function show($id)
+    {
+        $result = OpnameResult::with([
+            'referenceDetail.product',
+            'referenceDetail.bin',
+            'session'
+        ])->findOrFail($id);
+
+        $counts = OpnameCount::with('user')
+            ->where('session_id', $result->session_id)
+            ->where('reference_detail_id', $result->reference_detail_id)
+            ->whereIn('count_status', ['SUBMITTED', 'LOCKED'])
+            ->orderBy('count_sequence', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $recountAssignments = [];
+        if ($result->referenceDetail) {
+            $recountAssignments = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                ->leftJoin('users as u_to', 'opname_recount_assignments.assigned_to', '=', 'u_to.id')
+                ->leftJoin('users as u_by', 'opname_recount_assignments.assigned_by', '=', 'u_by.id')
+                ->where('session_id', $result->session_id)
+                ->where('location_code', $result->referenceDetail->bin_code)
+                ->where('id_product', $result->referenceDetail->sku_code)
+                ->select(
+                    'opname_recount_assignments.*',
+                    'u_to.full_name as assigned_to_name',
+                    'u_to.username as assigned_to_username',
+                    'u_by.full_name as assigned_by_name'
+                )
+                ->orderBy('round_number', 'asc')
+                ->get();
+        }
+
+        return view('sodc.opname_results.show', compact('result', 'counts', 'recountAssignments'));
+    }
+
+    /**
+     * Ambil data detail jejak audit hasil opname untuk Modal Interaktif (JSON)
+     */
+    public function detailJson($id)
+    {
+        $result = OpnameResult::with([
+            'referenceDetail.product',
+            'referenceDetail.bin',
+            'session'
+        ])->findOrFail($id);
+
+        $counts = OpnameCount::with('user')
+            ->where('session_id', $result->session_id)
+            ->where('reference_detail_id', $result->reference_detail_id)
+            ->whereIn('count_status', ['SUBMITTED', 'LOCKED'])
+            ->orderBy('count_sequence', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $recountAssignments = [];
+        if ($result->referenceDetail) {
+            $recountAssignments = \Illuminate\Support\Facades\DB::table('opname_recount_assignments')
+                ->leftJoin('users as u_to', 'opname_recount_assignments.assigned_to', '=', 'u_to.id')
+                ->leftJoin('users as u_by', 'opname_recount_assignments.assigned_by', '=', 'u_by.id')
+                ->where('session_id', $result->session_id)
+                ->where('location_code', $result->referenceDetail->bin_code)
+                ->where('id_product', $result->referenceDetail->sku_code)
+                ->select(
+                    'opname_recount_assignments.*',
+                    'u_to.full_name as assigned_to_name',
+                    'u_to.username as assigned_to_username',
+                    'u_by.full_name as assigned_by_name'
+                )
+                ->orderBy('round_number', 'asc')
+                ->get();
+        }
+
+        $formattedCounts = $counts->map(function($c) {
+            return [
+                'id' => $c->id,
+                'team_id' => $c->team_id,
+                'count_sequence' => $c->count_sequence,
+                'count_qty' => (float)$c->count_qty,
+                'input_karton' => (int)($c->input_karton ?? 0),
+                'input_pcs' => (int)($c->input_pcs ?? 0),
+                'counted_at' => $c->counted_at ? date('d M Y H:i:s', strtotime($c->counted_at)) : ($c->created_at ? date('d M Y H:i:s', strtotime($c->created_at)) : '-'),
+                'counted_by_id' => $c->counted_by,
+                'counted_by_name' => $c->user->full_name ?? ($c->user->username ?? 'User #' . $c->counted_by),
+                'counted_by_role' => $c->user->role ?? '-',
+                'count_status' => $c->count_status,
+            ];
+        });
+
+        $product = $result->referenceDetail->product ?? null;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'result_id' => $result->id,
+                'session_code' => $result->session->session_code ?? '-',
+                'session_mode' => $result->session->mode ?? '-',
+                'bin_code' => $result->referenceDetail->bin_code ?? '-',
+                'sku_code' => $result->referenceDetail->sku_code ?? '-',
+                'product_name' => $product->sku_name ?? 'Unknown Product',
+                'product_category_code' => $product->product_category_code ?? '-',
+                'packname' => $product->packname ?? '-',
+                'uom' => $product->uom ?? 1,
+                'barcode' => $product->barcode ?? '-',
+                'carton_code' => $product->carton_code ?? '-',
+                'principal' => $product->principal ?? '-',
+                'company_code' => $product->company_code ?? '-',
+                'system_qty' => (float)$result->system_qty,
+                'team_a_qty' => is_null($result->team_a_qty) ? null : (float)$result->team_a_qty,
+                'team_b_qty' => is_null($result->team_b_qty) ? null : (float)$result->team_b_qty,
+                'recount1_qty' => is_null($result->recount1_qty) ? null : (float)$result->recount1_qty,
+                'recount2_qty' => is_null($result->recount2_qty) ? null : (float)$result->recount2_qty,
+                'recount3_qty' => is_null($result->recount3_qty) ? null : (float)$result->recount3_qty,
+                'final_qty' => is_null($result->final_qty) ? null : (float)$result->final_qty,
+                'variance_qty' => (float)$result->variance_qty,
+                'variance_percentage' => (float)$result->variance_percentage,
+                'result_status' => $result->result_status,
+                'counts' => $formattedCounts,
+                'recount_assignments' => $recountAssignments,
+                'show_url' => route('sodc.results.show', $result->id)
+            ]
+        ]);
+    }
 }

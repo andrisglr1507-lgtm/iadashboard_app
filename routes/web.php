@@ -119,6 +119,8 @@ Route::prefix('sodc')->name('sodc.')->group(function () {
     Route::get('/tracking', [\App\Http\Controllers\Sodc\Tracking\TrackingController::class, 'index'])->name('tracking.index');
     Route::get('/recount_history', [\App\Http\Controllers\Sodc\Management\RecountHistoryController::class, 'index'])->name('recount_history.index');
     Route::get('/results', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'index'])->name('results.index');
+    Route::get('/results/{id}/detail-json', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'detailJson'])->name('results.detail_json');
+    Route::get('/results/{id}', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'show'])->name('results.show');
     Route::post('/results/recount', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'inputRecount'])->name('results.input_recount');
     Route::post('/results/assign_r3', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'assignR3'])->name('results.assign_r3');
     Route::get('/results/export_simple', [\App\Http\Controllers\Sodc\Result\CountResultController::class, 'exportSimple'])->name('results.export_simple');

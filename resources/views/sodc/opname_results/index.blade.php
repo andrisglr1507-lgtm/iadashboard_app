@@ -93,7 +93,7 @@
                         @endif
                         <th style="padding: 12px 16px; text-align: right;">Final Qty</th>
                         <th style="padding: 12px 16px; text-align: center;">Status</th>
-                        {{-- <th style="padding: 12px 16px; text-align: center;">Aksi</th> --}}
+                        <th style="padding: 12px 16px; text-align: center; width: 60px;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -154,29 +154,20 @@
                                     {{ $badgeText }}
                                 </span>
                             </td>
-                            {{-- <td style="padding: 12px 16px; text-align: center;">
-                                @php
-                                    $showInputR1 = $isR1;
-                                    $showInputR2 = $isR2;
-                                    $showInputR3 = false;
-                                    // Deteksi R3 FAILED (Misal: sudah diisi R2, tapi beda dengan semua, dan admin buat assignment R3)
-                                    if (($hasR3 ?? false) && $res->result_status == 'RECOUNT' && !is_null($res->recount2_qty) && is_null($res->recount3_qty ?? null)) {
-                                        $showInputR3 = true;
-                                    }
-                                @endphp
-                                @if($showInputR1 || $showInputR2 || $showInputR3)
-                                    @php $currentLevel = $showInputR3 ? 3 : ($showInputR2 ? 2 : 1); @endphp
-                                    <button type="button" onclick="openRecountModal({{ $res->id }}, {{ $currentLevel }}, '{{ $res->referenceDetail->bin_code }}', '{{ $res->referenceDetail->sku_code }}')" style="background: #0f172a; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
-                                        Input R{{ $currentLevel }}
-                                    </button>
-                                @else
-                                    <span style="color: #cbd5e1;">-</span>
-                                @endif
-                            </td> --}}
+                            <td style="padding: 12px 16px; text-align: center;">
+                                <button type="button" 
+                                        onclick="openAuditDetailModal({{ $res->id }})" 
+                                        title="Lihat Jejak Audit & Detail Input"
+                                        style="background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; width: 34px; height: 34px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
+                                        onmouseover="this.style.background='#0ea5e9'; this.style.color='#fff'; this.style.transform='scale(1.08)';"
+                                        onmouseout="this.style.background='#f0f9ff'; this.style.color='#0284c7'; this.style.transform='scale(1)';">
+                                    <i class="fas fa-eye" style="font-size: 0.95rem;"></i>
+                                </button>
+                            </td>
                         </tr>
                     @empty
                     <x-empty-state 
-                        colspan="{{ ($hasR3 ?? false) ? 10 : 9 }}"
+                        colspan="{{ ($hasR3 ?? false) ? 11 : 10 }}"
                         title="Tidak Ada Data Rekonsiliasi"
                         description="Tidak ditemukan data rekonsiliasi yang cocok dengan kriteria pencarian atau status yang dipilih."
                         :actionUrl="request()->hasAny(['search', 'status']) ? route('sodc.results.index') : null"
@@ -271,8 +262,150 @@
         var dropdown = document.getElementById('exportDropdown');
         dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
     }
+
+    // Modal Jejak Audit
+    function openAuditDetailModal(resultId) {
+        var modal = document.getElementById('auditDetailModal');
+        var loading = document.getElementById('auditModalLoading');
+        var content = document.getElementById('auditModalContent');
+        var errorBox = document.getElementById('auditModalError');
+        
+        modal.style.display = 'flex';
+        loading.style.display = 'flex';
+        content.style.display = 'none';
+        errorBox.style.display = 'none';
+
+        fetch('{{ url("sodc/results") }}/' + resultId + '/detail-json')
+            .then(function(response) {
+                if (!response.ok) throw new Error('Gagal mengambil data detail');
+                return response.json();
+            })
+            .then(function(res) {
+                if (!res.success) throw new Error(res.message || 'Data tidak ditemukan');
+                var data = res.data;
+
+                // Header & Link Halaman Penuh
+                document.getElementById('auditModalTitleBin').innerText = data.bin_code;
+                document.getElementById('auditModalTitleSku').innerText = data.sku_code;
+                document.getElementById('auditModalFullPageBtn').href = data.show_url;
+
+                // Detail Produk & Kategori
+                document.getElementById('auditProductSku').innerText = data.sku_code;
+                document.getElementById('auditProductName').innerText = data.product_name;
+                document.getElementById('auditProductCategory').innerText = data.product_category_code || '-';
+                document.getElementById('auditProductPackname').innerText = data.packname || '-';
+                document.getElementById('auditProductUom').innerText = (data.uom || 1) + ' Pcs';
+                document.getElementById('auditProductPrincipal').innerText = data.principal || '-';
+                document.getElementById('auditProductCompany').innerText = data.company_code || '-';
+                document.getElementById('auditProductBarcode').innerText = (data.barcode || '-') + ' / ' + (data.carton_code || '-');
+
+                // Ringkasan Qty
+                document.getElementById('auditKpiSystem').innerText = data.system_qty;
+                document.getElementById('auditKpiTeamA').innerText = data.team_a_qty !== null ? data.team_a_qty : '-';
+                document.getElementById('auditKpiTeamB').innerText = data.team_b_qty !== null ? data.team_b_qty : '-';
+                document.getElementById('auditKpiR1').innerText = data.recount1_qty !== null ? data.recount1_qty : '-';
+                document.getElementById('auditKpiR2').innerText = data.recount2_qty !== null ? data.recount2_qty : '-';
+                document.getElementById('auditKpiR3').innerText = data.recount3_qty !== null ? data.recount3_qty : '-';
+                document.getElementById('auditKpiFinal').innerText = data.final_qty !== null ? data.final_qty : '-';
+                
+                var varText = (data.variance_qty > 0 ? '+' : '') + data.variance_qty;
+                var varElem = document.getElementById('auditKpiVariance');
+                varElem.innerText = varText;
+                varElem.style.color = (data.variance_qty == 0) ? '#15803d' : '#e11d48';
+
+                var statusElem = document.getElementById('auditKpiStatus');
+                statusElem.innerText = data.result_status;
+                if (data.result_status === 'MATCH') {
+                    statusElem.style.background = '#10b981';
+                } else if (['FINAL', 'APPROVED'].indexOf(data.result_status) !== -1) {
+                    statusElem.style.background = '#3b82f6';
+                } else if (data.result_status && data.result_status.indexOf('RECOUNT') !== -1) {
+                    statusElem.style.background = '#f59e0b';
+                } else {
+                    statusElem.style.background = '#8b5cf6';
+                }
+
+                // Tabel Jejak Input (Timeline)
+                var tbody = document.getElementById('auditTrailTableBody');
+                tbody.innerHTML = '';
+
+                if (!data.counts || data.counts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 24px; color: #94a3b8;">Belum ada jejak input fisik yang tercatat.</td></tr>';
+                } else {
+                    data.counts.forEach(function(c, idx) {
+                        var stageName = 'Hitung Awal';
+                        var stageColor = '#0ea5e9';
+                        var stageBg = '#f0f9ff';
+
+                        if (c.count_sequence == 1) {
+                            if (c.team_id === 'TEAM_A' || idx === 0) {
+                                stageName = 'Hitung Awal (Team A)';
+                                stageColor = '#16a34a';
+                                stageBg = '#f0fdf4';
+                            } else {
+                                stageName = 'Hitung Awal (Team B)';
+                                stageColor = '#0284c7';
+                                stageBg = '#f0f9ff';
+                            }
+                        } else if (c.count_sequence == 2) {
+                            stageName = 'Recount 1 (R1)';
+                            stageColor = '#d97706';
+                            stageBg = '#fffbeb';
+                        } else if (c.count_sequence == 3) {
+                            stageName = 'Recount 2 (R2)';
+                            stageColor = '#dc2626';
+                            stageBg = '#fef2f2';
+                        } else if (c.count_sequence >= 4) {
+                            stageName = 'Recount 3 (R3)';
+                            stageColor = '#7e22ce';
+                            stageBg = '#faf5ff';
+                        }
+
+                        var tr = document.createElement('tr');
+                        tr.style.borderBottom = '1px solid #f1f5f9';
+                        tr.innerHTML = `
+                            <td style="padding: 10px 12px; font-weight: 700;">
+                                <span style="background: ${stageBg}; color: ${stageColor}; padding: 3px 8px; border-radius: 4px; border: 1px solid ${stageColor}33; font-size: 0.78rem;">
+                                    ${stageName}
+                                </span>
+                            </td>
+                            <td style="padding: 10px 12px;">
+                                <div style="font-weight: 700; color: #1e293b; font-size: 0.85rem;">
+                                    <i class="fas fa-user-circle" style="color: #64748b; margin-right: 4px;"></i>
+                                    ${c.counted_by_name}
+                                </div>
+                            </td>
+                            <td style="padding: 10px 12px;">
+                                <span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">
+                                    ${c.counted_by_role}
+                                </span>
+                            </td>
+                            <td style="padding: 10px 12px; text-align: right; font-weight: 600; color: #334155;">${c.input_karton}</td>
+                            <td style="padding: 10px 12px; text-align: right; font-weight: 600; color: #334155;">${c.input_pcs}</td>
+                            <td style="padding: 10px 12px; text-align: right; font-weight: 800; font-size: 0.95rem; color: #0f172a;">${c.count_qty}</td>
+                            <td style="padding: 10px 12px; color: #64748b; font-size: 0.78rem;">
+                                <i class="far fa-clock" style="margin-right: 3px;"></i>${c.counted_at}
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                loading.style.display = 'none';
+                content.style.display = 'block';
+            })
+            .catch(function(err) {
+                loading.style.display = 'none';
+                errorBox.innerText = err.message || 'Terjadi kesalahan saat memuat data.';
+                errorBox.style.display = 'block';
+            });
+    }
+
+    function closeAuditDetailModal() {
+        document.getElementById('auditDetailModal').style.display = 'none';
+    }
     
-    // Close dropdown when clicking outside
+    // Close dropdown & modal when clicking outside
     window.onclick = function(event) {
         if (!event.target.matches('.fa-download') && !event.target.matches('button') && !event.target.closest('button[onclick="toggleExportDropdown()"]')) {
             var dropdowns = document.getElementsByClassName("dropdown-content");
@@ -280,6 +413,10 @@
             if (dropdown && dropdown.style.display === 'block') {
                 dropdown.style.display = 'none';
             }
+        }
+        var auditModal = document.getElementById('auditDetailModal');
+        if (event.target === auditModal) {
+            closeAuditDetailModal();
         }
     }
 </script>
@@ -314,4 +451,183 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Jejak Audit & Detail Input (Team A, Team B s/d Recount 3) -->
+<div id="auditDetailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); z-index: 1050; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: white; width: 100%; max-width: 900px; max-height: 90vh; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); display: flex; flex-direction: column;">
+        
+        <!-- Modal Header -->
+        <div style="background: #0f172a; padding: 18px 24px; color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(14, 165, 233, 0.2); border: 1px solid rgba(14, 165, 233, 0.4); display: flex; align-items: center; justify-content: center; color: #38bdf8;">
+                    <i class="fas fa-eye" style="font-size: 1.1rem;"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+                        Jejak Audit & Detail Hasil Opname
+                    </h3>
+                    <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 2px;">
+                        Lokasi: <span id="auditModalTitleBin" style="color: #38bdf8; font-weight: 700;">-</span> | SKU: <span id="auditModalTitleSku" style="color: #f1f5f9; font-weight: 600; font-family: monospace;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <a id="auditModalFullPageBtn" href="#" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); color: #e2e8f0; padding: 6px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; text-decoration: none; border: 1px solid rgba(255,255,255,0.2); transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+                    <i class="fas fa-external-link-alt"></i> Buka Halaman Penuh
+                </a>
+                <button type="button" onclick="closeAuditDetailModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.6rem; cursor: pointer; padding: 0 4px; line-height: 1; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+            </div>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div style="padding: 24px; overflow-y: auto; flex: 1;">
+            
+            <!-- Loading Indicator -->
+            <div id="auditModalLoading" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 14px;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 2.2rem; color: #0ea5e9;"></i>
+                <div style="color: #64748b; font-weight: 600; font-size: 0.92rem;">Memuat jejak audit fisik dari database...</div>
+            </div>
+
+            <!-- Error Box -->
+            <div id="auditModalError" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 14px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 16px;"></div>
+
+            <!-- Main Content Container -->
+            <div id="auditModalContent" style="display: none;">
+                
+                <!-- Card Detail Produk -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0;">
+                        <div>
+                            <div style="font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Deskripsi Produk:</div>
+                            <h4 id="auditProductName" style="margin: 2px 0 0 0; color: #0f172a; font-size: 1.15rem; font-weight: 800;">-</h4>
+                            <div style="font-family: monospace; font-size: 0.85rem; color: #64748b; margin-top: 2px;">
+                                SKU: <strong id="auditProductSku" style="color: #0284c7;">-</strong>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Status Rekonsiliasi:</div>
+                            <span id="auditKpiStatus" style="display: inline-block; background: #10b981; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-top: 4px;">
+                                -
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 4 Kolom Spesifikasi Field Database -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 0.85rem;">
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px;">
+                            <div style="font-size: 0.7rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Kategori Produk</div>
+                            <div style="font-weight: 700; color: #0284c7; margin-top: 2px;">
+                                <span id="auditProductCategory" style="background: #e0f2fe; padding: 2px 6px; border-radius: 4px;">-</span>
+                            </div>
+                        </div>
+
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px;">
+                            <div style="font-size: 0.7rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Kemasan (Packname)</div>
+                            <div style="font-weight: 700; color: #166534; margin-top: 2px;">
+                                <span id="auditProductPackname" style="background: #dcfce7; padding: 2px 6px; border-radius: 4px;">-</span>
+                            </div>
+                        </div>
+
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px;">
+                            <div style="font-size: 0.7rem; color: #64748b; text-transform: uppercase; font-weight: 700;">UOM (Isi per Kemasan)</div>
+                            <div id="auditProductUom" style="font-weight: 700; color: #0f172a; margin-top: 2px;">-</div>
+                        </div>
+
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px;">
+                            <div style="font-size: 0.7rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Principal / Company</div>
+                            <div style="font-weight: 700; color: #334155; margin-top: 2px;">
+                                <span id="auditProductPrincipal">-</span> (<span id="auditProductCompany">-</span>)
+                            </div>
+                        </div>
+
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; grid-column: 1 / -1;">
+                            <div style="font-size: 0.7rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Barcode Satuan / Carton Code</div>
+                            <div id="auditProductBarcode" style="font-family: monospace; font-weight: 600; color: #334155; margin-top: 2px;">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Ringkasan Qty -->
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 20px;">
+                    <div style="font-size: 0.78rem; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 10px;">
+                        <i class="fas fa-calculator" style="color: #0ea5e9;"></i> Perbandingan Kuantitas Hasil Opname:
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 8px; text-align: center;">
+                        <div style="background: #f8fafc; border-radius: 8px; padding: 8px; border: 1px solid #e2e8f0;">
+                            <div style="font-size: 0.68rem; color: #64748b; font-weight: 700;">WMS QTY</div>
+                            <div id="auditKpiSystem" style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-top: 2px;">0</div>
+                        </div>
+                        <div style="background: #f0fdf4; border-radius: 8px; padding: 8px; border: 1px solid #bbf7d0;">
+                            <div style="font-size: 0.68rem; color: #166534; font-weight: 700;">TEAM A</div>
+                            <div id="auditKpiTeamA" style="font-size: 1.15rem; font-weight: 800; color: #15803d; margin-top: 2px;">-</div>
+                        </div>
+                        <div style="background: #f0f9ff; border-radius: 8px; padding: 8px; border: 1px solid #bae6fd;">
+                            <div style="font-size: 0.68rem; color: #0369a1; font-weight: 700;">TEAM B</div>
+                            <div id="auditKpiTeamB" style="font-size: 1.15rem; font-weight: 800; color: #0284c7; margin-top: 2px;">-</div>
+                        </div>
+                        <div style="background: #fffbeb; border-radius: 8px; padding: 8px; border: 1px solid #fde68a;">
+                            <div style="font-size: 0.68rem; color: #92400e; font-weight: 700;">RECOUNT 1</div>
+                            <div id="auditKpiR1" style="font-size: 1.15rem; font-weight: 800; color: #d97706; margin-top: 2px;">-</div>
+                        </div>
+                        <div style="background: #fef2f2; border-radius: 8px; padding: 8px; border: 1px solid #fecaca;">
+                            <div style="font-size: 0.68rem; color: #991b1b; font-weight: 700;">RECOUNT 2</div>
+                            <div id="auditKpiR2" style="font-size: 1.15rem; font-weight: 800; color: #dc2626; margin-top: 2px;">-</div>
+                        </div>
+                        <div style="background: #faf5ff; border-radius: 8px; padding: 8px; border: 1px solid #e9d5ff;">
+                            <div style="font-size: 0.68rem; color: #6b21a8; font-weight: 700;">RECOUNT 3</div>
+                            <div id="auditKpiR3" style="font-size: 1.15rem; font-weight: 800; color: #7e22ce; margin-top: 2px;">-</div>
+                        </div>
+                        <div style="background: #0f172a; color: white; border-radius: 8px; padding: 8px;">
+                            <div style="font-size: 0.68rem; color: #94a3b8; font-weight: 700;">FINAL</div>
+                            <div id="auditKpiFinal" style="font-size: 1.15rem; font-weight: 800; color: #38bdf8; margin-top: 2px;">-</div>
+                        </div>
+                        <div style="background: #f8fafc; border-radius: 8px; padding: 8px; border: 1px solid #e2e8f0;">
+                            <div style="font-size: 0.68rem; color: #475569; font-weight: 700;">SELISIH</div>
+                            <div id="auditKpiVariance" style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-top: 2px;">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Timeline Jejak Input User -->
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h5 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-history" style="color: #6366f1;"></i> Jejak Riwayat Input (User & Waktu Input):
+                        </h5>
+                        <span style="font-size: 0.75rem; color: #64748b;">Mulai dari Team A, Team B s/d Recount 3</span>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                            <thead>
+                                <tr style="background: #f8fafc; color: #475569; text-align: left; font-size: 0.75rem; text-transform: uppercase;">
+                                    <th style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0;">Tahap Hitung</th>
+                                    <th style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0;">User Penginput</th>
+                                    <th style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0;">Role</th>
+                                    <th style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">Karton</th>
+                                    <th style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">Pcs</th>
+                                    <th style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">Total Qty</th>
+                                    <th style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0;">Waktu Input</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTrailTableBody">
+                                <!-- Populated dynamically by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div style="background: #f8fafc; padding: 14px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" onclick="closeAuditDetailModal()" style="background: #64748b; color: white; border: none; padding: 8px 18px; border-radius: 8px; font-weight: 600; font-size: 0.88rem; cursor: pointer;">
+                Tutup
+            </button>
+        </div>
+    </div>
+</div>
 @endpush
+

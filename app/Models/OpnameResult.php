@@ -13,4 +13,9 @@ class OpnameResult extends Model
     {
         return $this->belongsTo(OpnameReferenceDetail::class, 'reference_detail_id');
     }
+
+    public function session()
+    {
+        return $this->belongsTo(OpnameSession::class, 'session_id');
+    }
 }
