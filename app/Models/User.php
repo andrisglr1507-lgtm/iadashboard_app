@@ -46,4 +46,21 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
         ];
     }
+
+    /**
+     * Check if user has specific role or one of given roles.
+     * SUPER_ADMIN always passes.
+     */
+    public function hasRole(string|array $roles): bool
+    {
+        if ($this->role === 'SUPER_ADMIN') {
+            return true;
+        }
+
+        if (is_array($roles)) {
+            return in_array($this->role, $roles, true);
+        }
+
+        return $this->role === $roles;
+    }
 }

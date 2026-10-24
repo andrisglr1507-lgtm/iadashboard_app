@@ -132,14 +132,16 @@ class TaskController extends Controller
         // 5. Get ALL target details for this session and group by bin
         $details = DB::table('opname_reference_details')
             ->leftJoin('bins', 'opname_reference_details.bin_code', '=', 'bins.bin_code')
+            ->leftJoin('warehouses', 'bins.warehouse_id', '=', 'warehouses.id')
             ->where('opname_reference_details.reference_id', $activeSession->reference_id)
             ->select(
                 'opname_reference_details.bin_code', 
                 'opname_reference_details.id as reference_detail_id',
                 'opname_reference_details.sku_code',
                 'opname_reference_details.system_qty',
-                  'opname_reference_details.is_ad_hoc',
-                'bins.warehouse_id', 'bins.zone', 'bins.aisle', 'bins.level', 'bins.ganjil_genap'
+                'opname_reference_details.is_ad_hoc',
+                'bins.warehouse_id', 'bins.zone', 'bins.aisle', 'bins.level', 'bins.ganjil_genap',
+                'warehouses.warehouse_name', 'warehouses.warehouse_code'
             )
             ->get();
 
@@ -171,6 +173,8 @@ class TaskController extends Controller
                             $binsAssoc[$uniqueCode] = [
                                 'bin_code' => $code, // Keep original bin_code for UI rendering
                                 'warehouse_id' => $wId,
+                                'warehouse_name' => $bin->warehouse_name ?? ($wId !== 'UNKNOWN' ? 'Gudang ' . $wId : null),
+                                'warehouse_code' => $bin->warehouse_code ?? null,
                                 'zone' => $zone,
                                 'aisle' => $aisle,
                                 'level' => $level,
@@ -197,6 +201,8 @@ class TaskController extends Controller
                     $binsAssoc[$code] = [
                         'bin_code' => $code,
                         'warehouse_id' => $wId,
+                        'warehouse_name' => $bin->warehouse_name ?? ($wId !== 'UNKNOWN' ? 'Gudang ' . $wId : null),
+                        'warehouse_code' => $bin->warehouse_code ?? null,
                         'zone' => $zone,
                         'aisle' => $aisle,
                         'level' => $level,
@@ -225,8 +231,18 @@ class TaskController extends Controller
         $allWarehouseBins = [];
         if (!empty($warehouseIds)) {
             $allWarehouseBins = DB::table('bins')
-                ->whereIn('warehouse_id', $warehouseIds)
-                ->select('bin_code', 'zone', 'ganjil_genap')
+                ->leftJoin('warehouses', 'bins.warehouse_id', '=', 'warehouses.id')
+                ->whereIn('bins.warehouse_id', $warehouseIds)
+                ->select(
+                    'bins.bin_code',
+                    'bins.zone',
+                    'bins.level',
+                    'bins.aisle',
+                    'bins.ganjil_genap',
+                    'bins.warehouse_id',
+                    'warehouses.warehouse_name',
+                    'warehouses.warehouse_code'
+                )
                 ->get()
                 ->toArray();
         }

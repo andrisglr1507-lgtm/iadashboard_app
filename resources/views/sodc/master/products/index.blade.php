@@ -44,7 +44,9 @@
                     <th style='border-bottom: 1px solid #e2e8f0;'>SKU Code</th>
                     <th style='border-bottom: 1px solid #e2e8f0;'>SKU Name</th>
                     <th style='border-bottom: 1px solid #e2e8f0;'>Barcode</th>
-                    <th style='border-bottom: 1px solid #e2e8f0;'>Packname & UOM</th>
+                    <th style='border-bottom: 1px solid #e2e8f0;'>Packname</th>
+                    <th style='border-bottom: 1px solid #e2e8f0; text-align: center;'>UOM (Isi)</th>
+                    <th style='border-bottom: 1px solid #e2e8f0;'>Kategori</th>
                     <th style='border-bottom: 1px solid #e2e8f0;'>Principal</th>
                     <th>Aksi</th>
                 </tr>
@@ -56,12 +58,29 @@
                     <td style='border-bottom: 1px solid #f1f5f9;'>{{ $row->sku_name }}</td>
                     <td style='border-bottom: 1px solid #f1f5f9;'>{{ $row->barcode ?: '-' }}</td>
                     <td style='border-bottom: 1px solid #f1f5f9;'>
-                        <span style="background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">
-                            Isi {{ $row->uom ?: 1 }} Pcs / {{ $row->packname ?: 'Karton' }}
+                        @if($row->packname)
+                            <span style="background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 0.85rem; white-space: nowrap;">
+                                {{ $row->packname }}
+                            </span>
+                        @else
+                            <span style="color: #94a3b8;">-</span>
+                        @endif
+                    </td>
+                    <td style='border-bottom: 1px solid #f1f5f9; text-align: center;'>
+                        <span style="background: #f1f5f9; color: #334155; padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 0.85rem;">
+                            {{ $row->uom ?: 1 }}
+                        </span>
+                    </td>
+                    <td style='border-bottom: 1px solid #f1f5f9;'>
+                        <span style="color: #475569; font-size: 0.85rem; font-weight: 500;">
+                            {{ $row->product_category_code ?: '-' }}
                         </span>
                     </td>
                     <td style='border-bottom: 1px solid #f1f5f9;'>
                         <div style="font-weight: 600; color: #334155;">{{ $row->principal ?: '-' }}</div>
+                        @if($row->company_code)
+                            <small style="color: #94a3b8; font-size: 0.75rem;">{{ $row->company_code }}</small>
+                        @endif
                     </td>
                     <td style='border-bottom: 1px solid #f1f5f9;'>
                         <a href="{{ route('sodc.products.edit', $row->id) }}" style="color: #0284c7; margin-right: 10px; text-decoration: none;"><i class="fas fa-edit"></i> Edit</a>

@@ -70,7 +70,7 @@
                                         <tr>
                                             <th style="padding: 10px 12px; color: #475569; font-weight: 700;">SKU Code</th>
                                             <th style="padding: 10px 12px; color: #475569; font-weight: 700;">Nama Produk</th>
-                                            <th style="padding: 10px 12px; color: #475569; font-weight: 700;">Packname & UOM</th>
+                                            <th style="padding: 10px 12px; color: #475569; font-weight: 700;">Kategori & UOM</th>
                                             <th style="padding: 10px 12px; color: #475569; font-weight: 700;">Principal</th>
                                         </tr>
                                     </thead>
@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     tr.innerHTML = `
                         <td style="padding: 8px 12px; font-weight: 700; color: #0284c7;">${item.sku_code}</td>
                         <td style="padding: 8px 12px; font-weight: 600; color: #334155;">${item.sku_name || '-'}</td>
-                        <td style="padding: 8px 12px; color: #64748b;">${item.uom} Pcs / ${item.packname || 'Karton'}</td>
+                        <td style="padding: 8px 12px; color: #64748b;">${item.product_category_code || '-'} <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.78rem; font-weight: 600;">UOM: ${item.uom}</span></td>
                         <td style="padding: 8px 12px; font-weight: 500; color: #475569;">${item.principal || '-'}</td>
                     `;
                     tbody.appendChild(tr);

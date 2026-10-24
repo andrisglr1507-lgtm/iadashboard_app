@@ -27,31 +27,37 @@ return [
                 'title' => 'Branches',
                 'icon' => 'ri-git-branch-line',
                 'route' => 'sodc.branches.index', // placeholder route
+                'roles' => ['SUPER_ADMIN', 'ADMIN'],
             ],
             [
                 'title' => 'Warehouses',
                 'icon' => 'ri-building-line',
                 'route' => 'sodc.warehouses.index', // placeholder route
+                'roles' => ['SUPER_ADMIN', 'ADMIN'],
             ],
             [
                 'title' => 'Bins Location',
                 'icon' => 'ri-archive-line',
                 'route' => 'sodc.bins.index', // placeholder route
+                'roles' => ['SUPER_ADMIN', 'ADMIN'],
             ],
             [
                 'title' => 'Products',
                 'icon' => 'ri-box-3-line',
                 'route' => 'sodc.products.index', // placeholder route
+                'roles' => ['SUPER_ADMIN', 'ADMIN'],
             ],
             [
                 'title' => 'Teams & Members',
                 'icon' => 'ri-team-line',
                 'route' => 'sodc.teams.index', // placeholder route
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME'],
             ],
             [
                 'title' => 'User Management',
                 'icon' => 'ri-user-settings-line',
                 'route' => 'users.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN'],
             ],
         ],
     ],
@@ -65,26 +71,31 @@ return [
                 'title' => 'WMS References',
                 'icon' => 'ri-file-download-line',
                 'route' => 'sodc.references.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME'],
             ],
             [
                 'title' => 'Opname Sessions',
                 'icon' => 'ri-calendar-check-line',
                 'route' => 'sodc.sessions.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME'],
             ],
             [
                 'title' => 'Assignments (Mode Gudang)',
                 'icon' => 'ri-task-line',
                 'route' => 'sodc.assignments.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME'],
             ],
             [
                 'title' => 'Assignments (Mode Lorong)',
                 'icon' => 'ri-route-line',
                 'route' => 'sodc.assignments_bulk.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME'],
             ],
             [
                 'title' => 'Rekap Bad Stock',
                 'icon' => 'ri-delete-bin-5-line',
                 'route' => 'sodc.bad_stock.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME', 'AUDITOR'],
             ]
         ],
     ],
@@ -98,16 +109,19 @@ return [
                 'title' => 'Input SO by Team',
                 'icon' => 'ri-fingerprint-line',
                 'route' => 'sodc.input_by_team.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME'],
             ],
             [
                 'title' => 'Tracking Opname',
                 'icon' => 'ri-map-pin-2-line',
                 'route' => 'sodc.tracking.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME', 'AUDITOR'],
             ],
             [
                 'title' => 'Count Results',
                 'icon' => 'ri-checkbox-multiple-line',
                 'route' => 'sodc.results.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME', 'AUDITOR'],
             ],
         ],
     ],
@@ -125,31 +139,37 @@ return [
                 'title' => 'Sesi Opname Cabang',
                 'icon' => 'ri-calendar-check-line',
                 'route' => 'sob.sessions.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME'],
             ],
             [
                 'title' => 'Area & Zona Cabang',
                 'icon' => 'ri-map-pin-range-line',
                 'route' => 'sob.zones.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME'],
             ],
             [
                 'title' => 'Penugasan Petugas',
                 'icon' => 'ri-user-shared-line',
                 'route' => 'sob.assignments.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME'],
             ],
             [
                 'title' => 'Tracking SO',
                 'icon' => 'ri-radar-line',
                 'route' => 'sob.sweep_headers.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME', 'AUDITOR'],
             ],
             [
                 'title' => 'Komparasi Hasil SO ',
                 'icon' => 'ri-compare-arrows-line',
                 'route' => 'sob.tag_results.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME', 'AUDITOR'],
             ],
             [
                 'title' => 'Rekonsiliasi Stok Cabang',
                 'icon' => 'ri-file-chart-line',
                 'route' => 'sob.reconciliations.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'HEAD_OPNAME', 'AUDITOR'],
             ],
         ],
     ],
@@ -166,21 +186,25 @@ return [
                 'title' => 'Data Pelanggan',
                 'icon' => 'ri-user-star-line',
                 'route' => 'konfirmasi_faktur.customers.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'AUDITOR'],
             ],
             [
                 'title' => 'Input List Bill',
                 'icon' => 'ri-map-pin-range-line',
                 'route' => 'sob.zones.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'AUDITOR'],
             ],
             [
                 'title' => 'Hasil Kunjungan',
                 'icon' => 'ri-user-shared-line',
                 'route' => 'sob.assignments.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'AUDITOR'],
             ],
             [
                 'title' => 'Hasil Pembaharuan Geotag',
                 'icon' => 'ri-radar-line',
                 'route' => 'sob.sweep_headers.index',
+                'roles' => ['SUPER_ADMIN', 'ADMIN', 'AUDITOR'],
             ],
         ],
     ],

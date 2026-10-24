@@ -14,9 +14,14 @@ class ProductController extends Controller
         
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
-            $query->where('sku_code', 'like', "%{$search}%")
+            $query->where(function($q) use ($search) {
+                $q->where('sku_code', 'like', "%{$search}%")
                   ->orWhere('sku_name', 'like', "%{$search}%")
-                  ->orWhere('barcode', 'like', "%{$search}%");
+                  ->orWhere('barcode', 'like', "%{$search}%")
+                  ->orWhere('packname', 'like', "%{$search}%")
+                  ->orWhere('product_category_code', 'like', "%{$search}%")
+                  ->orWhere('principal', 'like', "%{$search}%");
+            });
         }
         
         $data = $query->orderBy('id', 'desc')->paginate(15);
@@ -55,19 +60,34 @@ class ProductController extends Controller
     public function downloadTemplate()
     {
         $headers = [
-            "Content-type"        => "text/csv",
+            "Content-type"        => "text/csv; charset=UTF-8",
             "Content-Disposition" => "attachment; filename=template_import_products.csv",
             "Pragma"              => "no-cache",
             "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
             "Expires"             => "0"
         ];
         
-        $columns = array('sku_code', 'sku_name', 'barcode', 'carton_code', 'packname', 'uom', 'principal');
+        $columns = [
+            'sku_code',
+            'sku_name',
+            'barcode',
+            'carton_code',
+            'product_category_code',
+            'packname',
+            'uom',
+            'principal',
+            'company_code',
+            'is_active'
+        ];
         
         $callback = function() use($columns) {
             $file = fopen('php://output', 'w');
+            // Tulis UTF-8 BOM agar Excel di Windows membaca karakter/encoding dengan benar
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
             fputcsv($file, $columns);
-            fputcsv($file, array('PRD001', 'Kopi Saset ABC', '8991234567890', 'C-8991234567890', '1 CTN = 24 PCS', 24, 'ABC Group'));
+            fputcsv($file, ['PRD001', 'Kopi Saset ABC 10x20g', '8991234567890', 'C-8991234567890', 'Minuman', 'BOX', 24, 'ABC Group', 'CSAN', 1]);
+            fputcsv($file, ['PRD002', 'Biskuit Roma Kelapa 300g', '8991234567891', 'C-8991234567891', 'Biskuit', 'CTN', 30, 'Mayora', 'CSAN', 1]);
+            fputcsv($file, ['PRD003', 'Minyak Goreng Sania 2L', '8991234567892', 'C-8991234567892', 'Minyak', 'PCS', 1, 'Wilmar', 'CSAN', 1]);
             fclose($file);
         };
         
@@ -77,46 +97,176 @@ class ProductController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required'
+            'file' => 'required|file',
+            'import_mode' => 'nullable|string|in:upsert,update_only_empty,insert_only'
         ]);
 
+        $mode = $request->input('import_mode', 'upsert');
+
         $file = $request->file('file');
-        if($file->getClientOriginalExtension() != 'csv') {
-            return redirect()->back()->with('error', 'Hanya format CSV yang didukung saat ini.');
+        $ext = strtolower($file->getClientOriginalExtension());
+        if (!in_array($ext, ['csv', 'txt'])) {
+            return redirect()->back()->with('error', 'Hanya format CSV yang didukung.');
         }
 
         $handle = fopen($file->getRealPath(), 'r');
         
-        // Deteksi delimiter (, atau ;) karena Excel Indonesia sering pakai ;
+        // Deteksi delimiter (, atau ;) karena Excel versi Indonesia sering menggunakan ;
         $firstLine = fgets($handle);
         $delimiter = (strpos($firstLine, ';') !== false) ? ';' : ',';
         rewind($handle);
         
-        $header = fgetcsv($handle, 1000, $delimiter); 
+        $headerRaw = fgetcsv($handle, 2000, $delimiter); 
+        if (!$headerRaw) {
+            fclose($handle);
+            return redirect()->back()->with('error', 'File CSV kosong atau header tidak valid.');
+        }
+
+        // Hapus BOM jika ada di elemen header pertama
+        if (isset($headerRaw[0])) {
+            $headerRaw[0] = preg_replace('/^\xEF\xBB\xBF/', '', $headerRaw[0]);
+        }
+
+        // Petakan header kolom secara dinamis dengan dukungan berbagai alias
+        $colMap = [];
+        foreach ($headerRaw as $idx => $hName) {
+            $key = strtolower(trim(preg_replace('/^\xEF\xBB\xBF/', '', $hName)));
+            if (in_array($key, ['sku_code', 'sku', 'code', 'dataid', 'sku code', 'kode_sku', 'kode sku', 'id_product'])) $colMap['sku_code'] = $idx;
+            elseif (in_array($key, ['sku_name', 'name', 'product_name', 'productname', 'sku name', 'nama_produk', 'nama produk', 'nama_barang', 'nama barang', 'deskripsi'])) $colMap['sku_name'] = $idx;
+            elseif (in_array($key, ['barcode', 'itembarcode', 'item_barcode', 'barcode_satuan', 'barcode satuan', 'ean', 'upc'])) $colMap['barcode'] = $idx;
+            elseif (in_array($key, ['carton_code', 'cartoncode', 'carton_barcode', 'cartonbarcode', 'barcode_karton', 'barcode karton', 'carton barcode'])) $colMap['carton_code'] = $idx;
+            elseif (in_array($key, ['product_category_code', 'productcategorycode', 'category', 'category_code', 'kategori', 'product category code', 'kategori_produk', 'kategori produk', 'product_category'])) $colMap['product_category_code'] = $idx;
+            elseif (in_array($key, ['packname', 'pack_name', 'kemasan', 'satuan', 'pack name', 'satuan_kemasan', 'satuan kemasan', 'pack'])) $colMap['packname'] = $idx;
+            elseif (in_array($key, ['uom', 'isi', 'qty_uom', 'qty', 'isi kemasan', 'isi_kemasan', 'satuan_isi', 'uom_qty'])) $colMap['uom'] = $idx;
+            elseif (in_array($key, ['principal', 'principle', 'prinsipal', 'supplier', 'vendor'])) $colMap['principal'] = $idx;
+            elseif (in_array($key, ['company_code', 'companycode', 'company', 'company code', 'cabang', 'kode_cabang', 'kode cabang', 'comp_code'])) $colMap['company_code'] = $idx;
+            elseif (in_array($key, ['is_active', 'isactive', 'active', 'status', 'is active', 'aktif', 'status_aktif'])) $colMap['is_active'] = $idx;
+        }
+
+        // Fallback urutan kolom jika file CSV tanpa header resmi
+        if (!isset($colMap['sku_code'])) {
+            $colMap['sku_code'] = 0;
+            $colMap['sku_name'] = 1;
+            $colMap['barcode'] = 2;
+            $colMap['carton_code'] = 3;
+            $colMap['product_category_code'] = 4;
+            $colMap['packname'] = 5;
+            $colMap['uom'] = 6;
+            $colMap['principal'] = 7;
+            $colMap['company_code'] = 8;
+            $colMap['is_active'] = 9;
+        }
+
+        $insertedCount = 0;
+        $updatedCount = 0;
+        $skippedCount = 0;
         
-        while (($row = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
-            if (count($row) < 2) continue;
+        while (($row = fgetcsv($handle, 2000, $delimiter)) !== FALSE) {
+            if (count($row) < 1) continue;
             
-            // Konversi karakter aneh (non-UTF8) dari Excel (Windows-1252/ISO-8859-1) ke UTF-8 yang valid
+            // Konversi karakter non-UTF8 dari Excel ke UTF-8 dan bersihkan BOM
             $row = array_map(function($val) {
-                return mb_convert_encoding(trim($val), 'UTF-8', 'UTF-8, ISO-8859-1, Windows-1252');
+                $cleaned = preg_replace('/^\xEF\xBB\xBF/', '', trim($val ?? ''));
+                return mb_convert_encoding($cleaned, 'UTF-8', 'UTF-8, ISO-8859-1, Windows-1252');
             }, $row);
-            
-            Product::updateOrCreate(
-                ['sku_code' => $row[0]],
-                [
-                    'sku_name' => $row[1] ?? '',
-                    'barcode' => $row[2] ?: null,
-                    'carton_code' => $row[3] ?: null,
-                    'packname' => $row[4] ?: null,
-                    'uom' => isset($row[5]) && is_numeric($row[5]) ? (int)$row[5] : 1,
-                    'principal' => $row[6] ?: null,
-                ]
-            );
+
+            $sku = $row[$colMap['sku_code']] ?? '';
+            if ($sku === '') continue;
+
+            $skuName = isset($colMap['sku_name'], $row[$colMap['sku_name']]) ? $row[$colMap['sku_name']] : null;
+            $barcode = isset($colMap['barcode'], $row[$colMap['barcode']]) && $row[$colMap['barcode']] !== '' ? $row[$colMap['barcode']] : null;
+            $cartonCode = isset($colMap['carton_code'], $row[$colMap['carton_code']]) && $row[$colMap['carton_code']] !== '' ? $row[$colMap['carton_code']] : null;
+            $packname = isset($colMap['packname'], $row[$colMap['packname']]) && $row[$colMap['packname']] !== '' ? $row[$colMap['packname']] : null;
+            $uomVal = isset($colMap['uom'], $row[$colMap['uom']]) && is_numeric($row[$colMap['uom']]) ? (int)$row[$colMap['uom']] : null;
+            $principal = isset($colMap['principal'], $row[$colMap['principal']]) && $row[$colMap['principal']] !== '' ? $row[$colMap['principal']] : null;
+            $catCode = isset($colMap['product_category_code'], $row[$colMap['product_category_code']]) && $row[$colMap['product_category_code']] !== '' ? $row[$colMap['product_category_code']] : null;
+            $compCode = isset($colMap['company_code'], $row[$colMap['company_code']]) && $row[$colMap['company_code']] !== '' ? $row[$colMap['company_code']] : null;
+
+            $isActiveRaw = isset($colMap['is_active'], $row[$colMap['is_active']]) ? trim($row[$colMap['is_active']]) : null;
+            $isActive = 1;
+            if ($isActiveRaw !== null && $isActiveRaw !== '') {
+                if (in_array(strtolower($isActiveRaw), ['0', 'false', 'tidak', 'nonaktif', 'inactive', 'no'])) {
+                    $isActive = 0;
+                } else {
+                    $isActive = 1;
+                }
+            }
+
+            $existing = Product::where('sku_code', $sku)->first();
+
+            if (!$existing) {
+                // Baris baru belum ada -> Simpan ke database
+                Product::create([
+                    'sku_code' => $sku,
+                    'sku_name' => $skuName ?? '',
+                    'barcode' => $barcode,
+                    'carton_code' => $cartonCode,
+                    'packname' => $packname,
+                    'uom' => $uomVal ?: 1,
+                    'principal' => $principal,
+                    'product_category_code' => $catCode,
+                    'company_code' => $compCode,
+                    'is_active' => $isActive
+                ]);
+                $insertedCount++;
+            } else {
+                // Data sudah ada di database
+                if ($mode === 'insert_only') {
+                    $skippedCount++;
+                    continue;
+                }
+
+                if ($mode === 'update_only_empty') {
+                    // Hanya update field yang saat ini masih kosong / null di database
+                    $updatePayload = [];
+                    if (empty($existing->sku_name) && !empty($skuName)) $updatePayload['sku_name'] = $skuName;
+                    if (empty($existing->barcode) && !empty($barcode)) $updatePayload['barcode'] = $barcode;
+                    if (empty($existing->carton_code) && !empty($cartonCode)) $updatePayload['carton_code'] = $cartonCode;
+                    if (empty($existing->packname) && !empty($packname)) $updatePayload['packname'] = $packname;
+                    if ((empty($existing->uom) || $existing->uom <= 1) && !empty($uomVal)) $updatePayload['uom'] = $uomVal;
+                    if (empty($existing->principal) && !empty($principal)) $updatePayload['principal'] = $principal;
+                    if (empty($existing->product_category_code) && !empty($catCode)) $updatePayload['product_category_code'] = $catCode;
+                    if (empty($existing->company_code) && !empty($compCode)) $updatePayload['company_code'] = $compCode;
+                    if ($existing->is_active === null && $isActiveRaw !== null && $isActiveRaw !== '') $updatePayload['is_active'] = $isActive;
+
+                    if (!empty($updatePayload)) {
+                        $existing->update($updatePayload);
+                        $updatedCount++;
+                    } else {
+                        $skippedCount++;
+                    }
+                } else {
+                    // Mode 'upsert': Update dengan data dari CSV jika kolom tersebut ada di CSV
+                    $updatePayload = [];
+                    if ($skuName !== null && $skuName !== '') $updatePayload['sku_name'] = $skuName;
+                    if ($barcode !== null) $updatePayload['barcode'] = $barcode;
+                    if ($cartonCode !== null) $updatePayload['carton_code'] = $cartonCode;
+                    if ($packname !== null) $updatePayload['packname'] = $packname;
+                    if ($uomVal !== null) $updatePayload['uom'] = $uomVal;
+                    if ($principal !== null) $updatePayload['principal'] = $principal;
+                    if ($catCode !== null) $updatePayload['product_category_code'] = $catCode;
+                    if ($compCode !== null) $updatePayload['company_code'] = $compCode;
+                    if ($isActiveRaw !== null && $isActiveRaw !== '') $updatePayload['is_active'] = $isActive;
+
+                    if (!empty($updatePayload)) {
+                        $existing->update($updatePayload);
+                        $updatedCount++;
+                    } else {
+                        $skippedCount++;
+                    }
+                }
+            }
         }
         fclose($handle);
 
-        return redirect()->route('sodc.products.index')->with('success', 'Data Products berhasil diimport dari CSV!');
+        $msg = "Proses import CSV selesai. Ditambahkan: {$insertedCount} data baru, Di-update: {$updatedCount} data";
+        if ($skippedCount > 0) {
+            $msg .= ", Dilewati: {$skippedCount} data.";
+        } else {
+            $msg .= ".";
+        }
+
+        return redirect()->route('sodc.products.index')->with('success', $msg);
     }
 
     public function destroy($id)
@@ -154,7 +304,8 @@ class ProductController extends Controller
                             'sku_name' => $p['productName'] ?? '',
                             'barcode' => $p['itemBarcode'] ?: null,
                             'carton_code' => $p['cartonBarcode'] ?? null,
-                            'packname' => $p['productCategoryCode'] ?: null,
+                            'product_category_code' => $p['productCategoryCode'] ?: null,
+                            'company_code' => $p['company_code'] ?: null,
                             'uom' => $uom,
                             'principal' => $p['principal'] ?: null,
                             'is_active' => 1,
@@ -220,7 +371,9 @@ class ProductController extends Controller
                         'sku_name' => $p['productName'] ?? '',
                         'barcode' => $p['itemBarcode'] ?: null,
                         'carton_code' => $p['cartonBarcode'] ?? null,
-                        'packname' => $p['productCategoryCode'] ?: null,
+                        'product_category_code' => $p['productCategoryCode'] ?: null,
+                        'company_code' => $p['company_code'] ?: null,
+                        'packname' => null,
                         'uom' => $uom,
                         'principal' => $p['principal'] ?: null,
                     ];
@@ -284,6 +437,8 @@ class ProductController extends Controller
                     'sku_name' => $item['sku_name'] ?? '',
                     'barcode' => $item['barcode'] ?? null,
                     'carton_code' => $item['carton_code'] ?? null,
+                    'product_category_code' => $item['product_category_code'] ?? null,
+                    'company_code' => $item['company_code'] ?? null,
                     'packname' => $item['packname'] ?? null,
                     'uom' => (int)($item['uom'] ?? 1) ?: 1,
                     'principal' => $item['principal'] ?? null,

@@ -60,7 +60,7 @@ Route::get('/settings/security', [DashboardController::class, 'security'])->name
 
 
 // Users List routes
-Route::resource('/users', \App\Http\Controllers\UserController::class);
+Route::resource('/users', \App\Http\Controllers\UserController::class)->middleware('role:SUPER_ADMIN,ADMIN');
 
 
 
@@ -161,7 +161,7 @@ Route::prefix('sodc')->name('sodc.')->group(function () {
     });
 
     // Konfirmasi Faktur (Data Pelanggan)
-    Route::prefix('konfirmasi-faktur')->name('konfirmasi_faktur.')->group(function () {
+    Route::prefix('konfirmasi-faktur')->name('konfirmasi_faktur.')->middleware('role:SUPER_ADMIN,ADMIN,AUDITOR')->group(function () {
         Route::get('customers', [\App\Http\Controllers\KonfirmasiFaktur\CustomerController::class, 'index'])->name('customers.index');
         Route::get('customers/export', [\App\Http\Controllers\KonfirmasiFaktur\CustomerController::class, 'export'])->name('customers.export');
     });

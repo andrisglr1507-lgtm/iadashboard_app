@@ -21,7 +21,7 @@
 
     <div class="sidebar-menu" style="flex-grow: 1; overflow-y: auto; overflow-x: hidden;">
         <ul class="menu-list" id="menuList">
-            @foreach(config('sidebar', []) as $item)
+            @foreach(\App\Services\SidebarService::filter(config('sidebar', [])) as $item)
                 @include('partials.menu-item', ['item' => $item])
             @endforeach
         </ul>

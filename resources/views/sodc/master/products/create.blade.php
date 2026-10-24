@@ -22,20 +22,32 @@
                     <input type='text' name='sku_name' value="{{ $item->sku_name ?? '' }}" style='width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;' onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'">
                 </div>
                 <div style='margin-bottom: 15px;'>
-                    <label style='display:block; margin-bottom:5px; font-weight:600; color:#334155;'>Barcode</label>
-                    <input type='text' id='barcode-input' name='barcode' value="{{ $item->barcode ?? '' }}" style='width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;' onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'">
+                    <label style='display:block; margin-bottom:5px; font-weight:600; color:#334155;'>Barcode (Item Barcode)</label>
+                    <input type='text' id='barcode-input' name='barcode' value="{{ $item->barcode ?? '' }}" placeholder="Barcode satuan barang" style='width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;' onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'">
                 </div>
                 <div style='margin-bottom: 15px;'>
-                    <label style='display:block; margin-bottom:5px; font-weight:600; color:#334155;'>Packname</label>
-                    <input type='text' name='packname' value="{{ $item->packname ?? '' }}" placeholder="Misal: 1 CTN = 24 PCS" style='width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;' onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'">
+                    <label style='display:block; margin-bottom:5px; font-weight:600; color:#334155;'>Carton Code (Barcode Karton/Luar)</label>
+                    <input type='text' name='carton_code' value="{{ $item->carton_code ?? '' }}" placeholder="Barcode kemasan karton luar" style='width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;' onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'">
                 </div>
                 <div style='margin-bottom: 15px;'>
-                    <label style='display:block; margin-bottom:5px; font-weight:600; color:#334155;'>Isi per Karton (UOM)</label>
+                    <label style='display:block; margin-bottom:5px; font-weight:600; color:#334155;'>Packname (Satuan Kemasan)</label>
+                    <input type='text' name='packname' value="{{ $item->packname ?? '' }}" placeholder="Misal: PCS, BOX, CTN, PACK, BAL" style='width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;' onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'">
+                </div>
+                <div style='margin-bottom: 15px;'>
+                    <label style='display:block; margin-bottom:5px; font-weight:600; color:#334155;'>UOM (Isi per Kemasan)</label>
                     <input type='number' name='uom' value="{{ $item->uom ?? 1 }}" min="1" style='width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;' onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'">
+                </div>
+                <div style='margin-bottom: 15px;'>
+                    <label style='display:block; margin-bottom:5px; font-weight:600; color:#334155;'>Kategori Produk (Category)</label>
+                    <input type='text' name='product_category_code' value="{{ $item->product_category_code ?? '' }}" placeholder="Misal: Puding, Minuman, Makanan" style='width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;' onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'">
                 </div>
                 <div style='margin-bottom: 15px;'>
                     <label style='display:block; margin-bottom:5px; font-weight:600; color:#334155;'>Principal</label>
                     <input type='text' name='principal' value="{{ $item->principal ?? '' }}" placeholder="Nama Principal/Merk" style='width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;' onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'">
+                </div>
+                <div style='margin-bottom: 15px;'>
+                    <label style='display:block; margin-bottom:5px; font-weight:600; color:#334155;'>Company Code</label>
+                    <input type='text' name='company_code' value="{{ $item->company_code ?? '' }}" placeholder="Misal: CSAN" style='width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: border-color 0.2s;' onfocus="this.style.borderColor='#3874ff'" onblur="this.style.borderColor='#cbd5e1'">
                 </div>
                 
                 <button type="submit" class="btn btn-primary" style="margin-top: 15px; width: 100%; padding: 12px; font-size: 0.95rem;">
