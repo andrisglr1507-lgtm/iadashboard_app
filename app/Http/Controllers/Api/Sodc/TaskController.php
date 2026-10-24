@@ -80,11 +80,9 @@ class TaskController extends Controller
             $myRoles[$key] = $area->team_role;
         }
 
-        $myGlobalTeamRole = $myAreas->isNotEmpty() ? $myAreas->first()->team_role : 'UNASSIGNED';
-        $isRecountUser = ($myGlobalTeamRole === 'TEAM_RECOUNT' || in_array($user->role, ['AUDITOR', 'ADMIN', 'SUPER_ADMIN']));
-        if ($isRecountUser && $myGlobalTeamRole === 'UNASSIGNED') {
-            $myGlobalTeamRole = 'TEAM_RECOUNT';
-        }
+        // Cek apakah user ini adalah anggota Tim Recount Global yang dipilih di Web (opname_user_areas)
+        $isRecountUser = $myAreas->contains('team_role', 'TEAM_RECOUNT');
+        $myGlobalTeamRole = $isRecountUser ? 'TEAM_RECOUNT' : ($myAreas->isNotEmpty() ? $myAreas->first()->team_role : 'UNASSIGNED');
 
         // 4. Fetch all recount tasks for this session:
         // R1 & R2 are formed automatically in opname_results
@@ -405,8 +403,9 @@ class TaskController extends Controller
             ->where('user_id', $user->id)
             ->where('session_id', $activeSession->id)
             ->get();
-        $myGlobalTeamRole = $myAreas->isNotEmpty() ? $myAreas->first()->team_role : 'UNASSIGNED';
-        $isRecountUser = ($myGlobalTeamRole === 'TEAM_RECOUNT' || in_array($user->role, ['AUDITOR', 'ADMIN', 'SUPER_ADMIN']));
+        // Cek apakah user ini adalah anggota Tim Recount Global yang dipilih di Web (opname_user_areas)
+        $isRecountUser = $myAreas->contains('team_role', 'TEAM_RECOUNT');
+        $myGlobalTeamRole = $isRecountUser ? 'TEAM_RECOUNT' : ($myAreas->isNotEmpty() ? $myAreas->first()->team_role : 'UNASSIGNED');
 
         $requestedTaskType = $request->input('taskType') ?? $request->input('task_type');
 

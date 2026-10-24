@@ -115,7 +115,8 @@ class AssignmentController extends Controller
     {
         $request->validate([
             'session_id' => 'required|exists:opname_sessions,id',
-            'team_recount_users' => 'nullable|array'
+            'team_recount_users' => 'nullable|array',
+            'recount_users' => 'nullable|array'
         ]);
 
         $sessionId = $request->session_id;
@@ -126,25 +127,24 @@ class AssignmentController extends Controller
             ->delete();
 
         $inserts = [];
+        $userIds = $request->team_recount_users ?? $request->recount_users ?? [];
 
-        if ($request->team_recount_users) {
-            foreach ($request->team_recount_users as $userId) {
-                $inserts[] = [
-                    'session_id' => $sessionId,
-                    'warehouse_id' => 'ALL',
-                    'aisle' => 'ALL',
-                    'user_id' => $userId,
-                    'team_role' => 'TEAM_RECOUNT',
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ];
-            }
+        foreach ($userIds as $userId) {
+            $inserts[] = [
+                'session_id' => $sessionId,
+                'warehouse_id' => 'ALL',
+                'aisle' => 'ALL',
+                'user_id' => $userId,
+                'team_role' => 'TEAM_RECOUNT',
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
         }
 
         if (!empty($inserts)) {
             \App\Models\OpnameUserArea::insert($inserts);
         }
 
-        return redirect()->route('sodc.assignments.index')->with('success', 'Tim Recount Global berhasil di-set!');
+        return redirect()->back()->with('success', 'Tim Recount Global berhasil di-set!');
     }
 }

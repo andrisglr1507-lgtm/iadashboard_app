@@ -83,7 +83,10 @@ class AssignmentBulkController extends Controller
                 
             $currentAssignments = \App\Models\OpnameUserArea::where('session_id', $session->id)->with('user')->get();
             foreach ($currentAssignments as $asg) {
-                if ($asg->team_role === 'TEAM_RECOUNT') continue;
+                if ($asg->team_role === 'TEAM_RECOUNT') {
+                    $assignmentsMap['GLOBAL_RECOUNT'][] = $asg;
+                    continue;
+                }
                 $key = $asg->warehouse_id . '|' . $asg->aisle;
                 if (!isset($assignmentsMap[$key])) {
                     $assignmentsMap[$key] = ['TEAM_A' => [], 'TEAM_B' => []];

@@ -214,11 +214,11 @@
                 <div class="row align-items-end">
                     <div class="col-md-10">
                         @php
-                            $recountTeam = isset($assignmentsMap['RECOUNT']['TEAM_RECOUNT']) ? $assignmentsMap['RECOUNT']['TEAM_RECOUNT'] : [];
+                            $recountTeam = isset($assignmentsMap['GLOBAL_RECOUNT']) ? collect($assignmentsMap['GLOBAL_RECOUNT'])->pluck('user_id')->toArray() : [];
                         @endphp
                         <div class="form-group mb-0">
                             <label class="fw-bold mb-2 text-dark"><i class="fas fa-user-shield me-2 text-warning"></i> Pilih Anggota Tim Recount:</label>
-                            <select name="recount_users[]" class="form-select select2-multiple" multiple="multiple" style="width: 100%;">
+                            <select name="team_recount_users[]" class="form-select select2-multiple" multiple="multiple" style="width: 100%;">
                                 @foreach($users as $user)
                                     <option value="{{ $user->id }}" {{ in_array($user->id, $recountTeam) ? 'selected' : '' }}>
                                         {{ $user->full_name }}

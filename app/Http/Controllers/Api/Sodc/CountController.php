@@ -56,12 +56,12 @@ class CountController extends Controller
         $refDetailId = $request->reference_detail_id ?? null;
         $taskType = $request->taskType ?? $request->task_type ?? null;
 
-        $area = \App\Models\OpnameUserArea::where('session_id', $session->id)
+        $myAreas = \App\Models\OpnameUserArea::where('session_id', $session->id)
             ->where('user_id', $user->id)
-            ->first();
+            ->get();
 
-        $myTeamRole = $area ? $area->team_role : 'UNASSIGNED';
-        $isRecountUser = ($myTeamRole === 'TEAM_RECOUNT' || in_array($user->role, ['AUDITOR', 'ADMIN', 'SUPER_ADMIN']));
+        $isRecountUser = $myAreas->contains('team_role', 'TEAM_RECOUNT');
+        $myTeamRole = $isRecountUser ? 'TEAM_RECOUNT' : ($myAreas->isNotEmpty() ? $myAreas->first()->team_role : 'UNASSIGNED');
 
         // Find reference detail and result to check if this item is in recount
         $resultRef = null;
@@ -386,12 +386,12 @@ class CountController extends Controller
         }
 
         $binCode = $request->bin_code;
-        $area = \App\Models\OpnameUserArea::where('session_id', $session->id)
+        $myAreas = \App\Models\OpnameUserArea::where('session_id', $session->id)
             ->where('user_id', $user->id)
-            ->first();
+            ->get();
             
-        $myTeamRole = $area ? $area->team_role : 'UNASSIGNED';
-        $isRecountUser = ($myTeamRole === 'TEAM_RECOUNT' || in_array($user->role, ['AUDITOR', 'ADMIN', 'SUPER_ADMIN']));
+        $isRecountUser = $myAreas->contains('team_role', 'TEAM_RECOUNT');
+        $myTeamRole = $isRecountUser ? 'TEAM_RECOUNT' : ($myAreas->isNotEmpty() ? $myAreas->first()->team_role : 'UNASSIGNED');
         $taskType = $request->taskType ?? $request->task_type ?? null;
 
         if (in_array($taskType, ['R1', 'R2', 'R3']) || $isRecountUser) {
